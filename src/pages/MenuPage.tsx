@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import Card from '../components/ui/Card';
-import { LogOut, User, Tag, Tags, RefreshCw, Info, ChevronRight, Check, Loader } from 'lucide-react';
+import { LogOut, User, Tag, Tags, RefreshCw, Info, ChevronRight, Check, Loader, FileUp } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useRegisterSW } from 'virtual:pwa-register/react';
 
@@ -34,6 +34,7 @@ export default function MenuPage() {
     { icon: User, label: 'Editar Perfil', action: () => navigate('/profile') },
     { icon: Tag, label: 'Gerenciar Tags', action: () => navigate('/tags') },
     { icon: Tags, label: 'Gerenciar Categorias', action: () => navigate('/categories') },
+    { icon: FileUp, label: 'Importar Extrato', action: () => navigate('/import') },
   ];
 
   const updateLabel = {

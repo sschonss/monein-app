@@ -16,6 +16,7 @@ const CategoriesPage = lazy(() => import('./pages/CategoriesPage'));
 const TagsPage = lazy(() => import('./pages/TagsPage'));
 const MenuPage = lazy(() => import('./pages/MenuPage'));
 const ProfilePage = lazy(() => import('./pages/ProfilePage'));
+const ImportPage = lazy(() => import('./pages/ImportPage'));
 
 function Loading() {
   return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50dvh', color: 'var(--color-text-muted)' }}>Carregando...</div>;
@@ -41,6 +42,7 @@ export default function App() {
               <Route path="tags" element={<TagsPage />} />
               <Route path="profile" element={<ProfilePage />} />
               <Route path="menu" element={<MenuPage />} />
+              <Route path="import" element={<ImportPage />} />
             </Route>
           </Routes>
         </Suspense>
