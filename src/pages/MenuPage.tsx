@@ -21,9 +21,20 @@ export default function MenuPage() {
   async function handleCheckUpdates() {
     setUpdateStatus('checking');
     try {
-      await updateServiceWorker(true);
-      setUpdateStatus('updated');
-      setTimeout(() => window.location.reload(), 1500);
+      const reg = await navigator.serviceWorker?.getRegistration();
+      if (reg) {
+        await reg.update();
+        // Wait for the browser to detect a new SW
+        await new Promise(r => setTimeout(r, 1500));
+        if (reg.waiting) {
+          await updateServiceWorker(true);
+          setUpdateStatus('updated');
+          setTimeout(() => window.location.reload(), 1500);
+          return;
+        }
+      }
+      setUpdateStatus('latest');
+      setTimeout(() => setUpdateStatus('idle'), 3000);
     } catch {
       setUpdateStatus('latest');
       setTimeout(() => setUpdateStatus('idle'), 3000);
