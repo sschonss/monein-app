@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Card from '../components/ui/Card';
-import { ArrowLeft, TrendingUp, TrendingDown } from 'lucide-react';
+import { ArrowLeft, TrendingUp, TrendingDown, Landmark } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from 'recharts';
 import api from '../lib/api';
 
@@ -137,8 +137,56 @@ export default function AnalyticsPage() {
                   <Tooltip contentStyle={{ background: 'var(--color-surface)', border: '1px solid var(--color-surface-3)', borderRadius: '0.5rem', color: 'var(--color-text)', fontSize: '0.75rem' }} formatter={(v) => fmt(Number(v))} />
                   <Bar dataKey="income" name="Entradas" fill="var(--color-income)" radius={[4, 4, 0, 0]} />
                   <Bar dataKey="expense" name="Saídas" fill="var(--color-expense)" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="investment" name="Investimentos" fill="var(--color-investment)" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
+            </Card>
+          )}
+
+          {data && (data.total_investment > 0 || data.total_income > 0) && (
+            <Card>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                <Landmark size={16} style={{ color: 'var(--color-investment)' }} />
+                <h2 style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-text-muted)' }}>Investido vs Entradas</h2>
+              </div>
+              <ResponsiveContainer width="100%" height={200}>
+                <PieChart>
+                  <Pie
+                    data={[
+                      { name: 'Investido', value: data.total_investment, color: 'var(--color-investment)' },
+                      { name: 'Restante', value: Math.max(0, data.total_income - data.total_investment), color: 'var(--color-income)' },
+                    ].filter(d => d.value > 0)}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={80}
+                    innerRadius={45}
+                    strokeWidth={0}
+                  >
+                    {[
+                      { color: 'var(--color-investment)' },
+                      { color: 'var(--color-income)' },
+                    ].map((entry, i) => <Cell key={i} fill={entry.color} />)}
+                  </Pie>
+                  <Tooltip formatter={(v) => fmt(Number(v))} contentStyle={{ background: 'var(--color-surface)', border: '1px solid var(--color-surface-3)', borderRadius: '0.5rem', color: 'var(--color-text)', fontSize: '0.75rem' }} />
+                </PieChart>
+              </ResponsiveContainer>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem', marginTop: '0.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.75rem' }}>
+                  <div style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--color-investment)', flexShrink: 0 }} />
+                  <span style={{ flex: 1, color: 'var(--color-text)' }}>Investido</span>
+                  <span style={{ color: 'var(--color-text-muted)', fontWeight: 500 }}>
+                    {data.total_income > 0 ? ((data.total_investment / data.total_income) * 100).toFixed(1) : '0'}%
+                  </span>
+                  <span style={{ fontWeight: 600, minWidth: '70px', textAlign: 'right' }}>{fmtCompact(data.total_investment)}</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.75rem' }}>
+                  <div style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--color-income)', flexShrink: 0 }} />
+                  <span style={{ flex: 1, color: 'var(--color-text)' }}>Total Entradas</span>
+                  <span style={{ fontWeight: 600, minWidth: '70px', textAlign: 'right' }}>{fmtCompact(data.total_income)}</span>
+                </div>
+              </div>
             </Card>
           )}
         </>
