@@ -18,6 +18,7 @@ export default defineConfig({
       injectRegister: 'auto',
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+        importScripts: ['/sw-push.js'],
         runtimeCaching: [
           {
             urlPattern: /^https?:\/\/.*\/api\/v1\/.*/i,

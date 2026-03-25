@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import Card from '../components/ui/Card';
-import { LogOut, User, Tag, Tags, RefreshCw, Info, ChevronRight, Check, Loader, FileUp, Repeat } from 'lucide-react';
+import { LogOut, User, Tag, Tags, RefreshCw, Info, ChevronRight, Check, Loader, FileUp, Repeat, Bell, BellOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useRegisterSW } from 'virtual:pwa-register/react';
+import { usePushNotifications } from '../hooks/usePushNotifications';
 
 declare const __APP_VERSION__: string;
 
@@ -12,6 +13,7 @@ export default function MenuPage() {
   const navigate = useNavigate();
   const { updateServiceWorker } = useRegisterSW();
   const [updateStatus, setUpdateStatus] = useState<'idle' | 'checking' | 'updated' | 'latest'>('idle');
+  const push = usePushNotifications();
 
   async function handleLogout() {
     await logout();
@@ -103,6 +105,46 @@ export default function MenuPage() {
             </span>
           </div>
         </Card>
+
+        {/* Push Notifications */}
+        {push.supported && (
+          <Card
+            style={{ cursor: push.loading ? 'wait' : 'pointer' }}
+            onClick={() => {
+              if (push.loading) return;
+              if (push.subscribed) push.unsubscribe();
+              else push.subscribe();
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              {push.subscribed ? (
+                <Bell size={18} style={{ color: 'var(--color-success)', flexShrink: 0 }} />
+              ) : (
+                <BellOff size={18} style={{ color: 'var(--color-text-muted)', flexShrink: 0 }} />
+              )}
+              <div style={{ flex: 1 }}>
+                <span style={{ fontSize: '0.875rem', display: 'block' }}>
+                  {push.loading ? 'Configurando...' : push.subscribed ? 'Notificações ativadas' : 'Ativar notificações'}
+                </span>
+                {push.subscribed && (
+                  <span style={{ fontSize: '0.625rem', color: 'var(--color-text-muted)' }}>
+                    Lembrete às segundas para importar extrato
+                  </span>
+                )}
+                {push.permission === 'denied' && (
+                  <span style={{ fontSize: '0.625rem', color: 'var(--color-danger)' }}>
+                    Bloqueado pelo navegador. Permita nas configurações.
+                  </span>
+                )}
+              </div>
+              {push.subscribed ? (
+                <Check size={16} style={{ color: 'var(--color-success)' }} />
+              ) : (
+                <ChevronRight size={16} style={{ color: 'var(--color-text-muted)' }} />
+              )}
+            </div>
+          </Card>
+        )}
 
         <Card>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
