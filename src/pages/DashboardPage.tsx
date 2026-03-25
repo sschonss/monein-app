@@ -68,7 +68,7 @@ export default function DashboardPage() {
               <Pie data={data.by_category} dataKey="total" nameKey="name" cx="50%" cy="50%" outerRadius={70} innerRadius={40} strokeWidth={0}>
                 {data.by_category.map((entry, i) => <Cell key={i} fill={entry.color || '#6366f1'} />)}
               </Pie>
-              <Tooltip formatter={(v: number) => fmt(v)} contentStyle={{ background: 'var(--color-surface-2)', border: 'none', borderRadius: '0.5rem', color: 'var(--color-text)', fontSize: '0.75rem' }} />
+              <Tooltip formatter={(v) => fmt(Number(v))} contentStyle={{ background: 'var(--color-surface-2)', border: 'none', borderRadius: '0.5rem', color: 'var(--color-text)', fontSize: '0.75rem' }} />
             </PieChart>
           </ResponsiveContainer>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.5rem' }}>
@@ -89,7 +89,7 @@ export default function DashboardPage() {
             <BarChart data={data.monthly_evolution}>
               <XAxis dataKey="month" tick={{ fill: 'var(--color-text-muted)', fontSize: 10 }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fill: 'var(--color-text-muted)', fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={(v) => `${(v/1000).toFixed(0)}k`} />
-              <Tooltip contentStyle={{ background: 'var(--color-surface-2)', border: 'none', borderRadius: '0.5rem', color: 'var(--color-text)', fontSize: '0.75rem' }} formatter={(v: number) => fmt(v)} />
+              <Tooltip contentStyle={{ background: 'var(--color-surface-2)', border: 'none', borderRadius: '0.5rem', color: 'var(--color-text)', fontSize: '0.75rem' }} formatter={(v) => fmt(Number(v))} />
               <Bar dataKey="income" fill="var(--color-income)" radius={[4, 4, 0, 0]} />
               <Bar dataKey="expense" fill="var(--color-expense)" radius={[4, 4, 0, 0]} />
             </BarChart>
