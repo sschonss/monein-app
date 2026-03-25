@@ -1,6 +1,7 @@
 import { useState, useEffect, FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Button from '../components/ui/Button';
+import CurrencyInput from '../components/ui/CurrencyInput';
 import { ArrowLeft } from 'lucide-react';
 import api from '../lib/api';
 
@@ -52,7 +53,7 @@ export default function RecurringFormPage() {
         </div>
         <div><label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 500, marginBottom: '0.375rem', color: 'var(--color-text-muted)' }}>Descrição</label><input value={description} onChange={e => setDescription(e.target.value)} placeholder="Ex: Aluguel, Spotify..." required /></div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-          <div><label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 500, marginBottom: '0.375rem', color: 'var(--color-text-muted)' }}>Valor</label><input type="number" step="0.01" min="0.01" value={amount} onChange={e => setAmount(e.target.value)} required /></div>
+          <div><label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 500, marginBottom: '0.375rem', color: 'var(--color-text-muted)' }}>Valor</label><CurrencyInput value={amount} onChange={setAmount} required /></div>
           <div><label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 500, marginBottom: '0.375rem', color: 'var(--color-text-muted)' }}>Moeda</label><select value={currency} onChange={e => setCurrency(e.target.value)}><option value="BRL">BRL</option><option value="USD">USD</option><option value="EUR">EUR</option></select></div>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
