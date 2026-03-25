@@ -50,7 +50,10 @@ export default function TransactionsPage() {
     setTransactions(prev => prev.filter(t => t.id !== id));
   }
 
-  const fmtDate = (d: string) => new Date(d + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
+  const fmtDate = (d: string) => {
+    const date = d.includes('T') ? new Date(d) : new Date(d + 'T00:00:00');
+    return date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
+  };
 
   return (
     <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
