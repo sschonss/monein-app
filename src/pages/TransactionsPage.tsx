@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import EmptyState from '../components/ui/EmptyState';
-import { Plus, ArrowLeftRight, TrendingUp, TrendingDown, Landmark, Trash2, Pencil, ChevronLeft, ChevronRight, Loader } from 'lucide-react';
+import { Plus, ArrowLeftRight, TrendingUp, TrendingDown, Landmark, Trash2, Pencil, ChevronLeft, ChevronRight, Loader, Search, X } from 'lucide-react';
 import api from '../lib/api';
 
 interface Transaction {
@@ -38,23 +38,37 @@ export default function TransactionsPage() {
   const [year, setYear] = useState(now.getFullYear());
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
+  const [search, setSearch] = useState('');
+  const [searchActive, setSearchActive] = useState(false);
+  const [searchDebounce, setSearchDebounce] = useState('');
 
   const dateFrom = `${year}-${String(month + 1).padStart(2, '0')}-01`;
   const lastDay = new Date(year, month + 1, 0).getDate();
   const dateTo = `${year}-${String(month + 1).padStart(2, '0')}-${lastDay}`;
 
+  // Debounce search
+  useEffect(() => {
+    const t = setTimeout(() => setSearchDebounce(search), 400);
+    return () => clearTimeout(t);
+  }, [search]);
+
   const loadTransactions = useCallback(async (p: number, append = false) => {
     if (p === 1) setLoading(true); else setLoadingMore(true);
     try {
-      const params: Record<string, string> = { date_from: dateFrom, date_to: dateTo, page: String(p) };
+      const params: Record<string, string> = { page: String(p) };
+      if (!searchActive) {
+        params.date_from = dateFrom;
+        params.date_to = dateTo;
+      }
       if (filter !== 'all') params.type = filter;
+      if (searchDebounce) params.search = searchDebounce;
       const { data } = await api.get('/transactions', { params });
       const items = data.data || data;
       const lastPage = data.last_page || 1;
       setHasMore(p < lastPage);
       setTransactions(prev => append ? [...prev, ...items] : items);
     } catch { } finally { setLoading(false); setLoadingMore(false); }
-  }, [filter, dateFrom, dateTo]);
+  }, [filter, dateFrom, dateTo, searchDebounce, searchActive]);
 
   useEffect(() => { setPage(1); loadTransactions(1); }, [loadTransactions]);
 
@@ -89,12 +103,42 @@ export default function TransactionsPage() {
     <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h1 style={{ fontSize: '1.5rem', fontWeight: 700 }}>Transações</h1>
-        <Button onClick={() => navigate('/transactions/new')} style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', padding: '0.5rem 0.75rem' }}>
-          <Plus size={16} /> Nova
-        </Button>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <button onClick={() => { setSearchActive(!searchActive); if (searchActive) setSearch(''); }} style={{
+            background: searchActive ? 'var(--color-primary)' : 'var(--color-surface-2)', border: 'none', borderRadius: '0.5rem',
+            padding: '0.5rem', cursor: 'pointer', display: 'flex', alignItems: 'center',
+            color: searchActive ? '#fff' : 'var(--color-text-muted)',
+          }}>
+            <Search size={16} />
+          </button>
+          <Button onClick={() => navigate('/transactions/new')} style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', padding: '0.5rem 0.75rem' }}>
+            <Plus size={16} /> Nova
+          </Button>
+        </div>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem' }}>
+      {searchActive && (
+        <div style={{ position: 'relative' }}>
+          <input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Buscar por nome ou valor..."
+            autoFocus
+            style={{ paddingRight: '2.5rem' }}
+          />
+          {search && (
+            <button onClick={() => setSearch('')} style={{
+              position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)',
+              background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted)', padding: '0.25rem',
+            }}>
+              <X size={14} />
+            </button>
+          )}
+        </div>
+      )}
+
+      {!searchActive && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem' }}>
         <button onClick={prevMonth} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted)', padding: '0.25rem' }}>
           <ChevronLeft size={20} />
         </button>
@@ -105,6 +149,7 @@ export default function TransactionsPage() {
           <ChevronRight size={20} />
         </button>
       </div>
+      )}
 
       <div style={{ display: 'flex', gap: '0.5rem' }}>
         {['all', 'income', 'expense', 'investment'].map(f => (
