@@ -30,6 +30,7 @@ interface GlobalAccount {
   net_brl: number;
   returns_count: number;
   by_currency: GlobalCurrency[];
+  manual_balances?: Record<string, number>;
 }
 
 interface InvestmentSummary {
@@ -165,18 +166,42 @@ export default function InvestmentsPage() {
                 <h2 style={{ fontSize: '1rem', fontWeight: 700 }}>Conta Global</h2>
               </div>
 
-              {/* Net balance card */}
-              <Card style={{ background: '#475569', color: '#fff' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-                  <Globe size={16} strokeWidth={1.5} />
-                  <span style={{ fontSize: '0.6875rem', fontWeight: 500, opacity: 0.9, textTransform: 'uppercase' }}>Saldo Estimado</span>
-                </div>
-                <p style={{ fontSize: '1.75rem', fontWeight: 700, letterSpacing: '-0.02em' }}>{mask(fmt(summary.global_account.net_brl))}</p>
-                <p style={{ fontSize: '0.625rem', opacity: 0.75, marginTop: '0.25rem' }}>
-                  Enviado {mask(fmt(summary.global_account.total_deposited_brl))}
-                  {summary.global_account.total_returned_brl > 0 && ` · Resgatado ${mask(fmt(summary.global_account.total_returned_brl))}`}
-                </p>
-              </Card>
+              {/* Balance card - shows manual balances if set, otherwise estimated */}
+              {summary.global_account.manual_balances && Object.keys(summary.global_account.manual_balances).length > 0 ? (
+                <>
+                  <div style={{ display: 'grid', gridTemplateColumns: Object.keys(summary.global_account.manual_balances).length > 1 ? '1fr 1fr' : '1fr', gap: '0.5rem' }}>
+                    {Object.entries(summary.global_account.manual_balances).map(([cur, bal]) => (
+                      <Card key={cur} style={{ background: '#475569', color: '#fff', cursor: 'pointer' }} onClick={() => navigate(`/investments/global?currency=${cur}`)}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                          <span style={{ fontSize: '1rem' }}>{currencyFlags[cur]}</span>
+                          <span style={{ fontSize: '0.6875rem', fontWeight: 500, opacity: 0.9, textTransform: 'uppercase' }}>Saldo {cur}</span>
+                        </div>
+                        <p style={{ fontSize: '1.5rem', fontWeight: 700, letterSpacing: '-0.02em' }}>
+                          {mask(`${(bal as number).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${cur}`)}
+                        </p>
+                      </Card>
+                    ))}
+                  </div>
+                  <Card style={{ padding: '0.625rem 1rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <span style={{ fontSize: '0.6875rem', color: 'var(--color-text-muted)', fontWeight: 500 }}>Total Investido (BRL)</span>
+                      <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--color-text-muted)' }}>{mask(fmt(summary.global_account.net_brl))}</span>
+                    </div>
+                  </Card>
+                </>
+              ) : (
+                <Card style={{ background: '#475569', color: '#fff', cursor: 'pointer' }} onClick={() => navigate('/investments/global')}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                    <Globe size={16} strokeWidth={1.5} />
+                    <span style={{ fontSize: '0.6875rem', fontWeight: 500, opacity: 0.9, textTransform: 'uppercase' }}>Saldo Estimado</span>
+                  </div>
+                  <p style={{ fontSize: '1.75rem', fontWeight: 700, letterSpacing: '-0.02em' }}>{mask(fmt(summary.global_account.net_brl))}</p>
+                  <p style={{ fontSize: '0.625rem', opacity: 0.75, marginTop: '0.25rem' }}>
+                    Enviado {mask(fmt(summary.global_account.total_deposited_brl))}
+                    {summary.global_account.total_returned_brl > 0 && ` · Resgatado ${mask(fmt(summary.global_account.total_returned_brl))}`}
+                  </p>
+                </Card>
+              )}
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
                 {summary.global_account.by_currency.map(gc => (

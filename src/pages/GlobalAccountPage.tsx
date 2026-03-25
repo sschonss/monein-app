@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { usePrivacy } from '../contexts/PrivacyContext';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
-import { ArrowLeft, Globe, TrendingUp, TrendingDown, Plus, X } from 'lucide-react';
+import { ArrowLeft, Globe, TrendingUp, TrendingDown, Plus, X, Settings } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import api from '../lib/api';
 
@@ -29,7 +29,13 @@ interface MonthlyData {
   returns: number;
 }
 
+interface ManualBalance {
+  currency: string;
+  balance: number;
+}
+
 const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+const fmtForeign = (v: number, cur: string) => v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ' + cur;
 const currencyFlags: Record<string, string> = { USD: '🇺🇸', EUR: '🇪🇺', BRL: '🇧🇷' };
 const currencyNames: Record<string, string> = { USD: 'Dólar', EUR: 'Euro', BRL: 'Real' };
 
@@ -52,6 +58,11 @@ export default function GlobalAccountPage() {
   const [spendDesc, setSpendDesc] = useState('');
   const [spendCurrency, setSpendCurrency] = useState<'USD' | 'EUR'>('USD');
   const [saving, setSaving] = useState(false);
+  const [manualBalances, setManualBalances] = useState<ManualBalance[]>([]);
+  const [showAdjustForm, setShowAdjustForm] = useState(false);
+  const [adjustUSD, setAdjustUSD] = useState('');
+  const [adjustEUR, setAdjustEUR] = useState('');
+  const [adjustSaving, setAdjustSaving] = useState(false);
 
   function loadData() {
     setLoading(true);
@@ -64,6 +75,7 @@ export default function GlobalAccountPage() {
         setTotals(r.data.totals);
         setTotalReturns(r.data.total_returns);
         setMonthly(r.data.monthly);
+        if (r.data.manual_balances) setManualBalances(r.data.manual_balances);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -89,8 +101,26 @@ export default function GlobalAccountPage() {
     setSaving(false);
   }
 
+  async function handleAdjust() {
+    const balances: { currency: string; balance: number }[] = [];
+    if (adjustUSD !== '') balances.push({ currency: 'USD', balance: parseFloat(adjustUSD) || 0 });
+    if (adjustEUR !== '') balances.push({ currency: 'EUR', balance: parseFloat(adjustEUR) || 0 });
+    if (balances.length === 0) return;
+    setAdjustSaving(true);
+    try {
+      await api.post('/investments/global-account/adjust', { balances });
+      setShowAdjustForm(false);
+      loadData();
+    } catch {}
+    setAdjustSaving(false);
+  }
+
   const totalDeposited = totals.reduce((sum, t) => sum + t.total_brl, 0);
   const netAmount = totalDeposited - totalReturns;
+
+  const manualUSD = manualBalances.find(b => b.currency === 'USD');
+  const manualEUR = manualBalances.find(b => b.currency === 'EUR');
+  const hasManualBalance = manualBalances.length > 0;
 
   const filteredTx = tab === 'all' ? transactions : transactions.filter(t =>
     tab === 'return' ? (t.direction === 'return' || t.direction === 'spend') : t.direction === tab
@@ -109,24 +139,123 @@ export default function GlobalAccountPage() {
         <button onClick={() => navigate('/investments')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted)', padding: '0.25rem' }}>
           <ArrowLeft size={20} />
         </button>
-        <div>
+        <div style={{ flex: 1 }}>
           <h1 style={{ fontSize: '1.25rem', fontWeight: 700 }}>Conta Global</h1>
           <p style={{ fontSize: '0.6875rem', color: 'var(--color-text-muted)' }}>Investimentos em moeda estrangeira</p>
         </div>
+        <button
+          onClick={() => {
+            setShowAdjustForm(!showAdjustForm);
+            if (!showAdjustForm) {
+              setAdjustUSD(manualUSD ? String(manualUSD.balance) : '');
+              setAdjustEUR(manualEUR ? String(manualEUR.balance) : '');
+            }
+          }}
+          style={{
+            background: showAdjustForm ? '#475569' : 'var(--color-surface-2)',
+            border: 'none', cursor: 'pointer', padding: '0.5rem', borderRadius: '0.5rem',
+            color: showAdjustForm ? '#fff' : 'var(--color-text-muted)',
+            display: 'flex', alignItems: 'center',
+          }}
+        >
+          <Settings size={18} />
+        </button>
       </div>
+
+      {/* Adjust account form */}
+      {showAdjustForm && (
+        <Card style={{ border: '1px solid #475569', background: 'rgba(71,85,105,0.05)' }}>
+          <h3 style={{ fontSize: '0.8125rem', fontWeight: 700, marginBottom: '0.75rem' }}>⚙️ Ajustar Conta</h3>
+          <p style={{ fontSize: '0.625rem', color: 'var(--color-text-muted)', marginBottom: '0.75rem' }}>
+            Informe o saldo real da sua conta em cada moeda
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <div>
+              <label style={{ fontSize: '0.6875rem', fontWeight: 600, color: 'var(--color-text-muted)', display: 'block', marginBottom: '0.25rem' }}>🇺🇸 Saldo em Dólar (USD)</label>
+              <input
+                type="number"
+                step="0.01"
+                placeholder="0,00"
+                value={adjustUSD}
+                onChange={e => setAdjustUSD(e.target.value)}
+                style={{
+                  width: '100%', padding: '0.5rem 0.75rem', borderRadius: '0.5rem', fontSize: '0.875rem',
+                  border: '1px solid var(--color-surface-3)', background: 'var(--color-surface)',
+                  color: 'var(--color-text)', boxSizing: 'border-box',
+                }}
+              />
+            </div>
+            <div>
+              <label style={{ fontSize: '0.6875rem', fontWeight: 600, color: 'var(--color-text-muted)', display: 'block', marginBottom: '0.25rem' }}>🇪🇺 Saldo em Euro (EUR)</label>
+              <input
+                type="number"
+                step="0.01"
+                placeholder="0,00"
+                value={adjustEUR}
+                onChange={e => setAdjustEUR(e.target.value)}
+                style={{
+                  width: '100%', padding: '0.5rem 0.75rem', borderRadius: '0.5rem', fontSize: '0.875rem',
+                  border: '1px solid var(--color-surface-3)', background: 'var(--color-surface)',
+                  color: 'var(--color-text)', boxSizing: 'border-box',
+                }}
+              />
+            </div>
+            <Button onClick={handleAdjust} fullWidth disabled={adjustSaving || (adjustUSD === '' && adjustEUR === '')}>
+              {adjustSaving ? 'Salvando...' : 'Salvar Saldo'}
+            </Button>
+          </div>
+        </Card>
+      )}
 
       {loading ? (
         <p style={{ color: 'var(--color-text-muted)' }}>Carregando...</p>
       ) : (
         <>
-          {/* Net balance card */}
-          <Card style={{ background: '#475569', color: '#fff' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-              <Globe size={18} strokeWidth={1.5} />
-              <span style={{ fontSize: '0.6875rem', fontWeight: 500, opacity: 0.9, textTransform: 'uppercase' }}>Saldo Estimado</span>
-            </div>
-            <p style={{ fontSize: '2rem', fontWeight: 700, letterSpacing: '-0.02em' }}>{mask(fmt(netAmount))}</p>
-          </Card>
+          {/* Balance cards */}
+          {hasManualBalance ? (
+            <>
+              {/* Real balances from manual adjustment */}
+              <div style={{ display: 'grid', gridTemplateColumns: manualUSD && manualEUR ? '1fr 1fr' : '1fr', gap: '0.5rem' }}>
+                {manualUSD && (
+                  <Card style={{ background: '#475569', color: '#fff' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                      <span style={{ fontSize: '1rem' }}>🇺🇸</span>
+                      <span style={{ fontSize: '0.6875rem', fontWeight: 500, opacity: 0.9, textTransform: 'uppercase' }}>Saldo USD</span>
+                    </div>
+                    <p style={{ fontSize: '1.5rem', fontWeight: 700, letterSpacing: '-0.02em' }}>{mask(fmtForeign(manualUSD.balance, 'USD'))}</p>
+                  </Card>
+                )}
+                {manualEUR && (
+                  <Card style={{ background: '#475569', color: '#fff' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                      <span style={{ fontSize: '1rem' }}>🇪🇺</span>
+                      <span style={{ fontSize: '0.6875rem', fontWeight: 500, opacity: 0.9, textTransform: 'uppercase' }}>Saldo EUR</span>
+                    </div>
+                    <p style={{ fontSize: '1.5rem', fontWeight: 700, letterSpacing: '-0.02em' }}>{mask(fmtForeign(manualEUR.balance, 'EUR'))}</p>
+                  </Card>
+                )}
+              </div>
+              {/* Estimated as secondary info */}
+              <Card style={{ padding: '0.75rem 1rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <Globe size={14} style={{ color: 'var(--color-text-muted)' }} />
+                    <span style={{ fontSize: '0.6875rem', color: 'var(--color-text-muted)', fontWeight: 500 }}>Total Investido (BRL)</span>
+                  </div>
+                  <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--color-text-muted)' }}>{mask(fmt(netAmount))}</span>
+                </div>
+              </Card>
+            </>
+          ) : (
+            <Card style={{ background: '#475569', color: '#fff' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                <Globe size={18} strokeWidth={1.5} />
+                <span style={{ fontSize: '0.6875rem', fontWeight: 500, opacity: 0.9, textTransform: 'uppercase' }}>Saldo Estimado</span>
+              </div>
+              <p style={{ fontSize: '2rem', fontWeight: 700, letterSpacing: '-0.02em' }}>{mask(fmt(netAmount))}</p>
+              <p style={{ fontSize: '0.625rem', opacity: 0.7, marginTop: '0.25rem' }}>Ajuste o saldo real em ⚙️ Ajustar Conta</p>
+            </Card>
+          )}
 
           {/* Deposited vs Returned */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
@@ -244,34 +373,32 @@ export default function GlobalAccountPage() {
                     }}
                   />
                 </div>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <div style={{ flex: 1 }}>
-                    <label style={{ fontSize: '0.6875rem', fontWeight: 600, color: 'var(--color-text-muted)', display: 'block', marginBottom: '0.25rem' }}>Data</label>
-                    <input
-                      type="date"
-                      value={spendDate}
-                      onChange={e => setSpendDate(e.target.value)}
-                      style={{
-                        width: '100%', padding: '0.5rem 0.75rem', borderRadius: '0.5rem', fontSize: '0.875rem',
-                        border: '1px solid var(--color-surface-3)', background: 'var(--color-surface)',
-                        color: 'var(--color-text)', boxSizing: 'border-box',
-                      }}
-                    />
-                  </div>
-                  <div>
-                    <label style={{ fontSize: '0.6875rem', fontWeight: 600, color: 'var(--color-text-muted)', display: 'block', marginBottom: '0.25rem' }}>Moeda</label>
-                    <div style={{ display: 'flex', gap: '0.25rem' }}>
-                      {(['USD', 'EUR'] as const).map(c => (
-                        <button key={c} onClick={() => setSpendCurrency(c)} style={{
-                          padding: '0.5rem 0.75rem', borderRadius: '0.5rem', fontSize: '0.75rem', fontWeight: 600,
-                          border: 'none', cursor: 'pointer',
-                          background: spendCurrency === c ? '#475569' : 'var(--color-surface-2)',
-                          color: spendCurrency === c ? '#fff' : 'var(--color-text-muted)',
-                        }}>
-                          {currencyFlags[c]} {c}
-                        </button>
-                      ))}
-                    </div>
+                <div>
+                  <label style={{ fontSize: '0.6875rem', fontWeight: 600, color: 'var(--color-text-muted)', display: 'block', marginBottom: '0.25rem' }}>Data</label>
+                  <input
+                    type="date"
+                    value={spendDate}
+                    onChange={e => setSpendDate(e.target.value)}
+                    style={{
+                      width: '100%', padding: '0.5rem 0.75rem', borderRadius: '0.5rem', fontSize: '0.875rem',
+                      border: '1px solid var(--color-surface-3)', background: 'var(--color-surface)',
+                      color: 'var(--color-text)', boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.6875rem', fontWeight: 600, color: 'var(--color-text-muted)', display: 'block', marginBottom: '0.25rem' }}>Moeda</label>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    {(['USD', 'EUR'] as const).map(c => (
+                      <button key={c} onClick={() => setSpendCurrency(c)} style={{
+                        flex: 1, padding: '0.5rem 0.75rem', borderRadius: '0.5rem', fontSize: '0.75rem', fontWeight: 600,
+                        border: 'none', cursor: 'pointer',
+                        background: spendCurrency === c ? '#475569' : 'var(--color-surface-2)',
+                        color: spendCurrency === c ? '#fff' : 'var(--color-text-muted)',
+                      }}>
+                        {currencyFlags[c]} {c}
+                      </button>
+                    ))}
                   </div>
                 </div>
                 <div>
