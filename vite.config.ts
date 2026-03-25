@@ -28,8 +28,8 @@ export default defineConfig({
         name: 'Monein - Finanças Pessoais',
         short_name: 'Monein',
         description: 'Gerencie suas finanças pessoais',
-        theme_color: '#7c3aed',
-        background_color: '#0a0f1a',
+        theme_color: '#ffffff',
+        background_color: '#ffffff',
         display: 'standalone',
         start_url: '/',
         icons: [
