@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { usePrivacy } from '../contexts/PrivacyContext';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import EmptyState from '../components/ui/EmptyState';
@@ -23,16 +24,21 @@ interface GlobalCurrency {
   count: number;
 }
 
+interface GlobalAccount {
+  total_deposited_brl: number;
+  total_returned_brl: number;
+  net_brl: number;
+  returns_count: number;
+  by_currency: GlobalCurrency[];
+}
+
 interface InvestmentSummary {
   total_balance: number;
   total_deposited: number;
   total_withdrawn: number;
   total_yield: number;
   accounts_count: number;
-  global_account: {
-    total_brl: number;
-    by_currency: GlobalCurrency[];
-  };
+  global_account: GlobalAccount;
 }
 
 const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -47,6 +53,7 @@ const currencyNames: Record<string, string> = { USD: 'Dólar', EUR: 'Euro', BRL:
 
 export default function InvestmentsPage() {
   const navigate = useNavigate();
+  const { mask } = usePrivacy();
   const fileRef = useRef<HTMLInputElement>(null);
   const [summary, setSummary] = useState<InvestmentSummary | null>(null);
   const [accounts, setAccounts] = useState<InvestmentAccount[]>([]);
@@ -104,9 +111,8 @@ export default function InvestmentsPage() {
     return date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
   };
 
-  const totalInvested = summary
-    ? summary.total_balance + (summary.global_account?.total_brl || 0)
-    : 0;
+  const totalInvested = summary ? summary.total_balance : 0;
+  const globalTotal = summary?.global_account?.total_brl || 0;
 
   return (
     <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -116,53 +122,79 @@ export default function InvestmentsPage() {
         <p style={{ color: 'var(--color-text-muted)' }}>Carregando...</p>
       ) : (
         <>
-          {/* Total invested card */}
+          {/* Cofrinhos balance card */}
           {totalInvested > 0 && (
             <Card style={{ background: 'var(--color-investment)', color: '#fff' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-                <Landmark size={18} strokeWidth={1.5} />
-                <span style={{ fontSize: '0.6875rem', fontWeight: 500, opacity: 0.9, textTransform: 'uppercase' }}>Total Investido</span>
+                <PiggyBank size={18} strokeWidth={1.5} />
+                <span style={{ fontSize: '0.6875rem', fontWeight: 500, opacity: 0.9, textTransform: 'uppercase' }}>Saldo Cofrinhos</span>
               </div>
-              <p style={{ fontSize: '2rem', fontWeight: 700, letterSpacing: '-0.02em' }}>{fmt(totalInvested)}</p>
+              <p style={{ fontSize: '2rem', fontWeight: 700, letterSpacing: '-0.02em' }}>{mask(fmt(totalInvested))}</p>
             </Card>
           )}
 
           {/* Summary cards */}
-          {summary && (summary.total_balance > 0 || (summary.global_account?.total_brl || 0) > 0) && (
+          {summary && (totalInvested > 0 || globalTotal > 0) && (
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
-              {summary.total_balance > 0 && (
-                <Card>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                    <PiggyBank size={14} style={{ color: 'var(--color-investment)' }} />
-                    <span style={{ fontSize: '0.625rem', color: 'var(--color-text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Cofrinhos</span>
-                  </div>
-                  <p style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--color-investment)' }}>{fmtCompact(summary.total_balance)}</p>
-                </Card>
-              )}
               {summary.total_yield > 0 && (
                 <Card>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
                     <TrendingUp size={14} style={{ color: 'var(--color-income)' }} />
                     <span style={{ fontSize: '0.625rem', color: 'var(--color-text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Rendimentos</span>
                   </div>
-                  <p style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--color-income)' }}>{fmtCompact(summary.total_yield)}</p>
+                  <p style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--color-income)' }}>{mask(fmtCompact(summary.total_yield))}</p>
                 </Card>
               )}
-              {summary.global_account?.by_currency?.map(gc => (
-                <Card key={gc.currency}>
+              {summary.total_deposited > 0 && (
+                <Card>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                    <Globe size={14} style={{ color: '#475569' }} />
-                    <span style={{ fontSize: '0.625rem', color: 'var(--color-text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>
-                      {currencyFlags[gc.currency]} {currencyNames[gc.currency] || gc.currency}
-                    </span>
+                    <Landmark size={14} style={{ color: 'var(--color-investment)' }} />
+                    <span style={{ fontSize: '0.625rem', color: 'var(--color-text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Depositado</span>
                   </div>
-                  <p style={{ fontSize: '1rem', fontWeight: 700, color: '#475569' }}>{fmt(gc.total_brl)}</p>
-                  <p style={{ fontSize: '0.625rem', color: 'var(--color-text-muted)', marginTop: '0.125rem' }}>
-                    {gc.count} transaç{gc.count === 1 ? 'ão' : 'ões'}
-                  </p>
+                  <p style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--color-investment)' }}>{mask(fmtCompact(summary.total_deposited))}</p>
                 </Card>
-              ))}
+              )}
             </div>
+          )}
+
+          {/* Conta Global section */}
+          {summary?.global_account?.by_currency && summary.global_account.by_currency.length > 0 && (
+            <>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem' }}>
+                <Globe size={18} style={{ color: '#475569' }} />
+                <h2 style={{ fontSize: '1rem', fontWeight: 700 }}>Conta Global</h2>
+              </div>
+
+              {/* Net balance card */}
+              <Card style={{ background: '#475569', color: '#fff' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                  <Globe size={16} strokeWidth={1.5} />
+                  <span style={{ fontSize: '0.6875rem', fontWeight: 500, opacity: 0.9, textTransform: 'uppercase' }}>Saldo Estimado</span>
+                </div>
+                <p style={{ fontSize: '1.75rem', fontWeight: 700, letterSpacing: '-0.02em' }}>{mask(fmt(summary.global_account.net_brl))}</p>
+                <p style={{ fontSize: '0.625rem', opacity: 0.75, marginTop: '0.25rem' }}>
+                  Enviado {mask(fmt(summary.global_account.total_deposited_brl))}
+                  {summary.global_account.total_returned_brl > 0 && ` · Resgatado ${mask(fmt(summary.global_account.total_returned_brl))}`}
+                </p>
+              </Card>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                {summary.global_account.by_currency.map(gc => (
+                  <Card key={gc.currency} style={{ cursor: 'pointer' }} onClick={() => navigate(`/investments/global?currency=${gc.currency}`)}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                      <span style={{ fontSize: '1rem' }}>{currencyFlags[gc.currency]}</span>
+                      <span style={{ fontSize: '0.625rem', color: 'var(--color-text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>
+                        {currencyNames[gc.currency] || gc.currency}
+                      </span>
+                    </div>
+                    <p style={{ fontSize: '1rem', fontWeight: 700, color: '#475569' }}>{mask(fmt(gc.total_brl))}</p>
+                    <p style={{ fontSize: '0.625rem', color: 'var(--color-text-muted)', marginTop: '0.125rem' }}>
+                      {gc.count} transferência{gc.count !== 1 ? 's' : ''}
+                    </p>
+                  </Card>
+                ))}
+              </div>
+            </>
           )}
 
           {/* Cofrinhos section */}
@@ -212,11 +244,11 @@ export default function InvestmentsPage() {
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <p style={{ fontSize: '0.875rem', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{acc.name}</p>
                       <p style={{ fontSize: '0.6875rem', color: 'var(--color-text-muted)' }}>
-                        Rend. {fmt(acc.total_yield)} · Atualizado {fmtDate(acc.last_update)}
+                        Rend. {mask(fmt(acc.total_yield))} · Atualizado {fmtDate(acc.last_update)}
                       </p>
                     </div>
                     <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                      <p style={{ fontSize: '0.9375rem', fontWeight: 700, color: 'var(--color-investment)' }}>{fmtCompact(acc.current_balance)}</p>
+                      <p style={{ fontSize: '0.9375rem', fontWeight: 700, color: 'var(--color-investment)' }}>{mask(fmtCompact(acc.current_balance))}</p>
                     </div>
                     <div style={{ display: 'flex', gap: '0.25rem', flexShrink: 0 }}>
                       <button onClick={(e) => { e.stopPropagation(); handleDeleteAccount(acc.id, acc.name); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted)', padding: '0.25rem' }}>

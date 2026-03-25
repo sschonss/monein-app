@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { lazy, Suspense } from 'react';
 import { AuthProvider } from './contexts/AuthContext';
+import { PrivacyProvider } from './contexts/PrivacyContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout';
 import UpdatePrompt from './components/UpdatePrompt';
@@ -13,6 +14,7 @@ const TransactionFormPage = lazy(() => import('./pages/TransactionFormPage'));
 const AnalyticsPage = lazy(() => import('./pages/AnalyticsPage'));
 const InvestmentsPage = lazy(() => import('./pages/InvestmentsPage'));
 const CofrinhoDetailPage = lazy(() => import('./pages/CofrinhoDetailPage'));
+const GlobalAccountPage = lazy(() => import('./pages/GlobalAccountPage'));
 const RecurringPage = lazy(() => import('./pages/RecurringPage'));
 const RecurringFormPage = lazy(() => import('./pages/RecurringFormPage'));
 const CategoriesPage = lazy(() => import('./pages/CategoriesPage'));
@@ -29,6 +31,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+        <PrivacyProvider>
         <UpdatePrompt />
         <Suspense fallback={<Loading />}>
           <Routes>
@@ -42,6 +45,7 @@ export default function App() {
               <Route path="analytics" element={<AnalyticsPage />} />
               <Route path="investments" element={<InvestmentsPage />} />
               <Route path="investments/:id" element={<CofrinhoDetailPage />} />
+              <Route path="investments/global" element={<GlobalAccountPage />} />
               <Route path="recurring" element={<RecurringPage />} />
               <Route path="recurring/new" element={<RecurringFormPage />} />
               <Route path="categories" element={<CategoriesPage />} />
@@ -52,6 +56,7 @@ export default function App() {
             </Route>
           </Routes>
         </Suspense>
+        </PrivacyProvider>
       </AuthProvider>
     </BrowserRouter>
   );

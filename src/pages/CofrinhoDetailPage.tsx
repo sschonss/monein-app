@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { usePrivacy } from '../contexts/PrivacyContext';
 import Card from '../components/ui/Card';
 import { ArrowLeft, Landmark, TrendingUp, TrendingDown, PiggyBank } from 'lucide-react';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
@@ -31,6 +32,7 @@ const typeSigns: Record<string, string> = { deposit: '+', withdrawal: '-', yield
 export default function CofrinhoDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { mask } = usePrivacy();
   const [data, setData] = useState<AccountDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<'all' | 'deposit' | 'withdrawal' | 'yield'>('all');
@@ -72,7 +74,7 @@ export default function CofrinhoDetailPage() {
           <PiggyBank size={18} strokeWidth={1.5} />
           <span style={{ fontSize: '0.6875rem', fontWeight: 500, opacity: 0.9, textTransform: 'uppercase' }}>Saldo Atual</span>
         </div>
-        <p style={{ fontSize: '2rem', fontWeight: 700, letterSpacing: '-0.02em' }}>{fmt(data.current_balance)}</p>
+        <p style={{ fontSize: '2rem', fontWeight: 700, letterSpacing: '-0.02em' }}>{mask(fmt(data.current_balance))}</p>
       </Card>
 
       <div style={{ display: 'grid', gridTemplateColumns: data.total_withdrawn > 0 ? '1fr 1fr' : '1fr 1fr', gap: '0.5rem' }}>
@@ -81,7 +83,7 @@ export default function CofrinhoDetailPage() {
             <TrendingUp size={14} style={{ color: 'var(--color-income)' }} />
             <span style={{ fontSize: '0.625rem', color: 'var(--color-text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Rendimentos</span>
           </div>
-          <p style={{ fontSize: '0.9375rem', fontWeight: 700, color: 'var(--color-income)' }}>{fmtCompact(data.total_yield)}</p>
+          <p style={{ fontSize: '0.9375rem', fontWeight: 700, color: 'var(--color-income)' }}>{mask(fmtCompact(data.total_yield))}</p>
           <p style={{ fontSize: '0.625rem', color: 'var(--color-text-muted)', marginTop: '0.125rem' }}>{yieldPct}% do depositado</p>
         </Card>
         <Card>
@@ -89,7 +91,7 @@ export default function CofrinhoDetailPage() {
             <Landmark size={14} style={{ color: 'var(--color-investment)' }} />
             <span style={{ fontSize: '0.625rem', color: 'var(--color-text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Depositado</span>
           </div>
-          <p style={{ fontSize: '0.9375rem', fontWeight: 700, color: 'var(--color-investment)' }}>{fmtCompact(data.total_deposited)}</p>
+          <p style={{ fontSize: '0.9375rem', fontWeight: 700, color: 'var(--color-investment)' }}>{mask(fmtCompact(data.total_deposited))}</p>
         </Card>
         {data.total_withdrawn > 0 && (
           <Card style={{ gridColumn: '1 / -1' }}>
@@ -97,7 +99,7 @@ export default function CofrinhoDetailPage() {
               <TrendingDown size={14} style={{ color: 'var(--color-expense)' }} />
               <span style={{ fontSize: '0.625rem', color: 'var(--color-text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Resgatado</span>
             </div>
-            <p style={{ fontSize: '0.9375rem', fontWeight: 700, color: 'var(--color-expense)' }}>{fmt(data.total_withdrawn)}</p>
+            <p style={{ fontSize: '0.9375rem', fontWeight: 700, color: 'var(--color-expense)' }}>{mask(fmt(data.total_withdrawn))}</p>
           </Card>
         )}
       </div>
@@ -164,7 +166,7 @@ export default function CofrinhoDetailPage() {
                 <p style={{ fontSize: '0.625rem', color: 'var(--color-text-muted)' }}>{fmtDate(m.date)} · Saldo: {fmt(m.balance_after)}</p>
               </div>
               <span style={{ fontSize: '0.875rem', fontWeight: 600, color: typeColors[m.type] }}>
-                {typeSigns[m.type]}{fmt(m.amount)}
+                {typeSigns[m.type]}{mask(fmt(m.amount))}
               </span>
             </div>
           </Card>

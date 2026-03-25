@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { usePrivacy } from '../contexts/PrivacyContext';
 import Card from '../components/ui/Card';
-import { TrendingUp, TrendingDown, Landmark, Wallet, ChevronRight, BarChart3 } from 'lucide-react';
+import { TrendingUp, TrendingDown, Landmark, Wallet, ChevronRight, BarChart3, Eye, EyeOff } from 'lucide-react';
 import api from '../lib/api';
 
 interface DashboardData {
@@ -21,9 +22,10 @@ const periods = [
 
 export default function DashboardPage() {
   const { user } = useAuth();
+  const { mask, toggle, hidden } = usePrivacy();
   const navigate = useNavigate();
   const [data, setData] = useState<DashboardData | null>(null);
-  const [investSummary, setInvestSummary] = useState<{ total_balance: number; global_account?: { total_brl: number } } | null>(null);
+  const [investSummary, setInvestSummary] = useState<{ total_balance: number; global_account?: { net_brl: number } } | null>(null);
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState('month');
 
@@ -38,16 +40,21 @@ export default function DashboardPage() {
     }).catch(() => {}).finally(() => setLoading(false));
   }, [period]);
 
-  const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  const fmt = (v: number) => mask(v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }));
 
   const balance = data?.balance ?? 0;
   const isPositive = balance >= 0;
 
   return (
     <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-      <div>
-        <p style={{ color: 'var(--color-text-muted)', fontSize: '0.875rem' }}>Olá, {user?.name?.split(' ')[0]}</p>
-        <h1 style={{ fontSize: '1.5rem', fontWeight: 700, marginTop: '0.25rem' }}>Dashboard</h1>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+        <div>
+          <p style={{ color: 'var(--color-text-muted)', fontSize: '0.875rem' }}>Olá, {user?.name?.split(' ')[0]}</p>
+          <h1 style={{ fontSize: '1.5rem', fontWeight: 700, marginTop: '0.25rem' }}>Dashboard</h1>
+        </div>
+        <button onClick={toggle} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted)', padding: '0.5rem' }}>
+          {hidden ? <EyeOff size={20} /> : <Eye size={20} />}
+        </button>
       </div>
 
       <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -98,7 +105,7 @@ export default function DashboardPage() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
               <Landmark size={18} style={{ color: 'var(--color-investment)', flexShrink: 0 }} />
               <span style={{ fontSize: '0.875rem', flex: 1, fontWeight: 500 }}>Investimentos</span>
-              <span style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--color-investment)' }}>{fmt((investSummary?.total_balance ?? 0) + (investSummary?.global_account?.total_brl ?? 0))}</span>
+              <span style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--color-investment)' }}>{fmt(investSummary?.total_balance ?? 0)}</span>
               <ChevronRight size={16} style={{ color: 'var(--color-text-muted)' }} />
             </div>
           </Card>
