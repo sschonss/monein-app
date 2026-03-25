@@ -36,6 +36,11 @@ export default function DashboardPage() {
   }, [period]);
 
   const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  const fmtCompact = (v: number) => {
+    if (Math.abs(v) >= 1_000_000) return `R$ ${(v / 1_000_000).toFixed(1)}M`;
+    if (Math.abs(v) >= 10_000) return `R$ ${(v / 1_000).toFixed(1)}k`;
+    return fmt(v);
+  };
 
   return (
     <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -70,20 +75,20 @@ export default function DashboardPage() {
           </Card>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.5rem' }}>
-            <Card>
+            <Card style={{ overflow: 'hidden' }}>
               <TrendingUp size={16} style={{ color: 'var(--color-income)', marginBottom: '0.375rem' }} />
               <p style={{ fontSize: '0.625rem', color: 'var(--color-text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Entradas</p>
-              <p style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-income)', marginTop: '0.125rem' }}>{fmt(data?.total_income ?? 0)}</p>
+              <p style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--color-income)', marginTop: '0.125rem', whiteSpace: 'nowrap' }}>{fmtCompact(data?.total_income ?? 0)}</p>
             </Card>
-            <Card>
+            <Card style={{ overflow: 'hidden' }}>
               <TrendingDown size={16} style={{ color: 'var(--color-expense)', marginBottom: '0.375rem' }} />
               <p style={{ fontSize: '0.625rem', color: 'var(--color-text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Saídas</p>
-              <p style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-expense)', marginTop: '0.125rem' }}>{fmt(data?.total_expense ?? 0)}</p>
+              <p style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--color-expense)', marginTop: '0.125rem', whiteSpace: 'nowrap' }}>{fmtCompact(data?.total_expense ?? 0)}</p>
             </Card>
-            <Card>
+            <Card style={{ overflow: 'hidden' }}>
               <Landmark size={16} style={{ color: 'var(--color-investment)', marginBottom: '0.375rem' }} />
               <p style={{ fontSize: '0.625rem', color: 'var(--color-text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Investido</p>
-              <p style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-investment)', marginTop: '0.125rem' }}>{fmt(data?.total_investment ?? 0)}</p>
+              <p style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--color-investment)', marginTop: '0.125rem', whiteSpace: 'nowrap' }}>{fmtCompact(data?.total_investment ?? 0)}</p>
             </Card>
           </div>
 
