@@ -1,32 +1,36 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import EmptyState from '../components/ui/EmptyState';
-import { Plus, Landmark, TrendingUp, TrendingDown, Pencil, Trash2, ChevronLeft, ChevronRight, Loader } from 'lucide-react';
-import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from 'recharts';
+import { Landmark, TrendingUp, TrendingDown, Upload, ChevronRight, Trash2, Loader, Check, AlertCircle, PiggyBank } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import api from '../lib/api';
 
-interface Transaction {
+interface InvestmentAccount {
   id: number;
-  type: 'income' | 'expense' | 'investment';
-  description: string;
-  amount: number;
-  amount_brl: number;
-  currency: string;
-  exchange_rate: number | null;
-  date: string;
-  category?: { name: string; icon: string; color: string };
+  name: string;
+  current_balance: number;
+  total_deposited: number;
+  total_withdrawn: number;
+  total_yield: number;
+  movements_count: number;
+  last_update: string | null;
+}
+
+interface InvestmentSummary {
+  total_balance: number;
+  total_deposited: number;
+  total_withdrawn: number;
+  total_yield: number;
+  accounts_count: number;
 }
 
 interface DashboardData {
   total_income: number;
   total_investment: number;
-  by_category_investment: { name: string; total: string | number; color: string }[];
   monthly_evolution: { month: string; income: number; expense: number; investment: number }[];
 }
-
-const MONTHS_PT = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 
 const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 const fmtCompact = (v: number) => {
@@ -44,82 +48,75 @@ const periods = [
 
 export default function InvestmentsPage() {
   const navigate = useNavigate();
-  const now = new Date();
+  const fileRef = useRef<HTMLInputElement>(null);
   const [dash, setDash] = useState<DashboardData | null>(null);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [summary, setSummary] = useState<InvestmentSummary | null>(null);
+  const [accounts, setAccounts] = useState<InvestmentAccount[]>([]);
   const [loading, setLoading] = useState(true);
-  const [loadingTx, setLoadingTx] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
   const [period, setPeriod] = useState('month');
-  const [month, setMonth] = useState(now.getMonth());
-  const [year, setYear] = useState(now.getFullYear());
-  const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadResult, setUploadResult] = useState<{ message: string; imported: number; skipped: number; account_name: string } | null>(null);
+  const [uploadError, setUploadError] = useState('');
 
-  useEffect(() => {
+  function loadAll() {
     setLoading(true);
-    api.get('/dashboard', { params: { period } })
-      .then(r => setDash(r.data))
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, [period]);
+    Promise.all([
+      api.get('/dashboard', { params: { period } }),
+      api.get('/investments/summary'),
+      api.get('/investments/accounts'),
+    ]).then(([dashRes, summaryRes, accountsRes]) => {
+      setDash(dashRes.data);
+      setSummary(summaryRes.data);
+      setAccounts(accountsRes.data);
+    }).catch(() => {}).finally(() => setLoading(false));
+  }
 
-  const dateFrom = `${year}-${String(month + 1).padStart(2, '0')}-01`;
-  const lastDay = new Date(year, month + 1, 0).getDate();
-  const dateTo = `${year}-${String(month + 1).padStart(2, '0')}-${lastDay}`;
+  useEffect(() => { loadAll(); }, [period]);
 
-  const loadTransactions = useCallback(async (p: number, append = false) => {
-    if (p === 1) setLoadingTx(true); else setLoadingMore(true);
+  async function handleUpload(file: File) {
+    if (file.type !== 'application/pdf') {
+      setUploadError('Selecione um arquivo PDF');
+      return;
+    }
+    setUploading(true);
+    setUploadError('');
+    setUploadResult(null);
     try {
-      const params: Record<string, string> = { page: String(p), type: 'investment', date_from: dateFrom, date_to: dateTo };
-      const { data } = await api.get('/transactions', { params });
-      const items = data.data || data;
-      const lastPage = data.last_page || 1;
-      setHasMore(p < lastPage);
-      setTransactions(prev => append ? [...prev, ...items] : items);
-    } catch { } finally { setLoadingTx(false); setLoadingMore(false); }
-  }, [dateFrom, dateTo]);
-
-  useEffect(() => { setPage(1); loadTransactions(1); }, [loadTransactions]);
-
-  function handleLoadMore() {
-    const next = page + 1;
-    setPage(next);
-    loadTransactions(next, true);
+      const formData = new FormData();
+      formData.append('file', file);
+      const { data } = await api.post('/investments/import/cofrinho', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      setUploadResult(data);
+      loadAll();
+    } catch (err: any) {
+      setUploadError(err.response?.data?.message || 'Erro ao importar');
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = '';
+    }
   }
 
-  function prevMonth() {
-    if (month === 0) { setMonth(11); setYear(y => y - 1); } else setMonth(m => m - 1);
-  }
-  function nextMonth() {
-    if (month === 11) { setMonth(0); setYear(y => y + 1); } else setMonth(m => m + 1);
-  }
-
-  async function handleDelete(id: number) {
-    if (!confirm('Excluir transação?')) return;
-    await api.delete(`/transactions/${id}`);
-    setTransactions(prev => prev.filter(t => t.id !== id));
+  async function handleDeleteAccount(id: number, name: string) {
+    if (!confirm(`Remover cofrinho "${name}" e todas as movimentações?`)) return;
+    await api.delete(`/investments/accounts/${id}`);
+    loadAll();
   }
 
-  const fmtDate = (d: string) => {
-    const date = d.includes('T') ? new Date(d) : new Date(d + 'T00:00:00');
-    return date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
-  };
-
-  const investCat = (dash?.by_category_investment || []).map(c => ({ ...c, total: Number(c.total) }));
   const monthlyInvestment = (dash?.monthly_evolution || []).map(m => ({ month: m.month, investment: m.investment }));
-  const totalInvested = dash?.total_investment ?? 0;
   const totalIncome = dash?.total_income ?? 0;
+  const totalInvested = dash?.total_investment ?? 0;
   const investPct = totalIncome > 0 ? ((totalInvested / totalIncome) * 100).toFixed(1) : '0';
+
+  const fmtDate = (d: string | null) => {
+    if (!d) return '-';
+    const date = d.includes('T') ? new Date(d) : new Date(d + 'T00:00:00');
+    return date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
+  };
 
   return (
     <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h1 style={{ fontSize: '1.5rem', fontWeight: 700 }}>Investimentos</h1>
-        <Button onClick={() => navigate('/transactions/new')} style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', padding: '0.5rem 0.75rem' }}>
-          <Plus size={16} /> Novo
-        </Button>
-      </div>
+      <h1 style={{ fontSize: '1.5rem', fontWeight: 700 }}>Investimentos</h1>
 
       <div style={{ display: 'flex', gap: '0.5rem' }}>
         {periods.map(p => (
@@ -138,51 +135,46 @@ export default function InvestmentsPage() {
         <p style={{ color: 'var(--color-text-muted)' }}>Carregando...</p>
       ) : (
         <>
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
-            <Card style={{ flex: 1, background: 'var(--color-investment)', color: '#fff' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-                <Landmark size={16} strokeWidth={1.5} />
-                <span style={{ fontSize: '0.6875rem', fontWeight: 500, opacity: 0.9, textTransform: 'uppercase' }}>Investido</span>
-              </div>
-              <p style={{ fontSize: '1.5rem', fontWeight: 700, letterSpacing: '-0.02em' }}>{fmt(totalInvested)}</p>
-            </Card>
-            <Card style={{ flex: 1 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-                <TrendingUp size={16} style={{ color: 'var(--color-income)' }} />
-                <span style={{ fontSize: '0.6875rem', color: 'var(--color-text-muted)', fontWeight: 500, textTransform: 'uppercase' }}>% da Renda</span>
-              </div>
-              <p style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-investment)' }}>{investPct}%</p>
-            </Card>
-          </div>
+          {/* Summary cards */}
+          {summary && summary.total_balance > 0 && (
+            <>
+              <Card style={{ background: 'var(--color-investment)', color: '#fff' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                  <Landmark size={18} strokeWidth={1.5} />
+                  <span style={{ fontSize: '0.6875rem', fontWeight: 500, opacity: 0.9, textTransform: 'uppercase' }}>Saldo Cofrinhos</span>
+                </div>
+                <p style={{ fontSize: '2rem', fontWeight: 700, letterSpacing: '-0.02em' }}>{fmt(summary.total_balance)}</p>
+              </Card>
 
-          {investCat.length > 0 && (
-            <Card>
-              <h2 style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-text-muted)', marginBottom: '0.75rem' }}>Por Categoria</h2>
-              <ResponsiveContainer width="100%" height={180}>
-                <PieChart>
-                  <Pie data={investCat} dataKey="total" nameKey="name" cx="50%" cy="50%" outerRadius={70} innerRadius={40} strokeWidth={0}>
-                    {investCat.map((entry, i) => <Cell key={i} fill={entry.color || '#2563eb'} />)}
-                  </Pie>
-                  <Tooltip formatter={(v) => fmt(Number(v))} contentStyle={{ background: 'var(--color-surface)', border: '1px solid var(--color-surface-3)', borderRadius: '0.5rem', color: 'var(--color-text)', fontSize: '0.75rem' }} />
-                </PieChart>
-              </ResponsiveContainer>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem', marginTop: '0.5rem' }}>
-                {investCat.map((c, i) => {
-                  const total = investCat.reduce((s, x) => s + x.total, 0);
-                  const pct = total > 0 ? ((c.total / total) * 100).toFixed(1) : '0';
-                  return (
-                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.75rem' }}>
-                      <div style={{ width: 10, height: 10, borderRadius: '50%', background: c.color || '#2563eb', flexShrink: 0 }} />
-                      <span style={{ flex: 1, color: 'var(--color-text)' }}>{c.name}</span>
-                      <span style={{ color: 'var(--color-text-muted)', fontWeight: 500 }}>{pct}%</span>
-                      <span style={{ fontWeight: 600, minWidth: '70px', textAlign: 'right' }}>{fmtCompact(c.total)}</span>
-                    </div>
-                  );
-                })}
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <Card style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                    <TrendingUp size={14} style={{ color: 'var(--color-income)' }} />
+                    <span style={{ fontSize: '0.625rem', color: 'var(--color-text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Rendimentos</span>
+                  </div>
+                  <p style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--color-income)' }}>{fmt(summary.total_yield)}</p>
+                </Card>
+                <Card style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                    <Landmark size={14} style={{ color: 'var(--color-investment)' }} />
+                    <span style={{ fontSize: '0.625rem', color: 'var(--color-text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Depositado</span>
+                  </div>
+                  <p style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--color-investment)' }}>{fmt(summary.total_deposited)}</p>
+                </Card>
               </div>
-            </Card>
+
+              {totalIncome > 0 && (
+                <Card>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>% da renda investido</span>
+                    <span style={{ fontSize: '1.125rem', fontWeight: 700, color: 'var(--color-investment)' }}>{investPct}%</span>
+                  </div>
+                </Card>
+              )}
+            </>
           )}
 
+          {/* Monthly evolution */}
           {monthlyInvestment.some(m => m.investment > 0) && (
             <Card>
               <h2 style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-text-muted)', marginBottom: '0.75rem' }}>Evolução Mensal</h2>
@@ -196,74 +188,70 @@ export default function InvestmentsPage() {
               </ResponsiveContainer>
             </Card>
           )}
-        </>
-      )}
 
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '0.5rem' }}>
-        <h2 style={{ fontSize: '1rem', fontWeight: 700 }}>Transações</h2>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <button onClick={prevMonth} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted)', padding: '0.25rem' }}>
-            <ChevronLeft size={18} />
-          </button>
-          <span style={{ fontSize: '0.8125rem', fontWeight: 600, minWidth: '120px', textAlign: 'center' }}>
-            {MONTHS_PT[month]} {year}
-          </span>
-          <button onClick={nextMonth} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted)', padding: '0.25rem' }}>
-            <ChevronRight size={18} />
-          </button>
-        </div>
-      </div>
-
-      {loadingTx ? <p style={{ color: 'var(--color-text-muted)' }}>Carregando...</p> : transactions.length === 0 ? (
-        <EmptyState icon={Landmark} title="Sem investimentos" description={`Nenhum investimento em ${MONTHS_PT[month]}`} />
-      ) : (
-        <>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            {transactions.map(t => {
-              const isForeign = t.currency && t.currency !== 'BRL';
-              return (
-                <Card key={t.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }} onClick={() => navigate(`/transactions/${t.id}/edit`)}>
-                  <div style={{
-                    width: 36, height: 36, borderRadius: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    background: `${t.category?.color || 'var(--color-investment)'}20`,
-                  }}>
-                    <Landmark size={18} style={{ color: t.category?.color || 'var(--color-investment)' }} strokeWidth={1.5} />
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ fontSize: '0.875rem', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.description}</p>
-                    <p style={{ fontSize: '0.6875rem', color: 'var(--color-text-muted)' }}>{t.category?.name || 'Investimento'} · {fmtDate(t.date)}</p>
-                  </div>
-                  <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                    <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--color-investment)', display: 'block' }}>
-                      +{isForeign ? fmt(Number(t.amount)) : fmt(Number(t.amount_brl))}
-                    </span>
-                    {isForeign && (
-                      <span style={{ fontSize: '0.625rem', color: 'var(--color-text-muted)', display: 'block' }}>
-                        +{fmt(Number(t.amount_brl))}
-                      </span>
-                    )}
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', flexShrink: 0 }}>
-                    <button onClick={(e) => { e.stopPropagation(); navigate(`/transactions/${t.id}/edit`); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted)', padding: '0.25rem' }}>
-                      <Pencil size={14} />
-                    </button>
-                    <button onClick={(e) => { e.stopPropagation(); handleDelete(t.id); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted)', padding: '0.25rem' }}>
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
-                </Card>
-              );
-            })}
+          {/* Cofrinhos section */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '0.5rem' }}>
+            <h2 style={{ fontSize: '1rem', fontWeight: 700 }}>Cofrinhos</h2>
+            <Button onClick={() => fileRef.current?.click()} disabled={uploading} style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', padding: '0.5rem 0.75rem' }}>
+              {uploading ? <Loader size={16} style={{ animation: 'spin 1s linear infinite' }} /> : <Upload size={16} />}
+              {uploading ? 'Importando...' : 'Importar PDF'}
+            </Button>
+            <input ref={fileRef} type="file" accept=".pdf" onChange={e => { if (e.target.files?.[0]) handleUpload(e.target.files[0]); }} style={{ display: 'none' }} />
           </div>
 
-          {hasMore && (
-            <button onClick={handleLoadMore} disabled={loadingMore} style={{
-              background: 'var(--color-surface-2)', border: 'none', borderRadius: '0.5rem',
-              padding: '0.625rem', fontSize: '0.8125rem', fontWeight: 500, cursor: 'pointer',
-              color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
-            }}>
-              {loadingMore ? <><Loader size={14} style={{ animation: 'spin 1s linear infinite' }} /> Carregando...</> : 'Carregar mais'}
-            </button>
+          {uploadError && (
+            <Card style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <AlertCircle size={16} style={{ color: 'var(--color-danger)', flexShrink: 0 }} />
+                <span style={{ fontSize: '0.8125rem', color: 'var(--color-danger)' }}>{uploadError}</span>
+              </div>
+            </Card>
+          )}
+
+          {uploadResult && (
+            <Card style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <Check size={16} style={{ color: 'var(--color-success)', flexShrink: 0 }} />
+                <div>
+                  <p style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--color-success)' }}>{uploadResult.account_name}</p>
+                  <p style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>{uploadResult.imported} importadas · {uploadResult.skipped} ignoradas</p>
+                </div>
+              </div>
+            </Card>
+          )}
+
+          {accounts.length === 0 ? (
+            <EmptyState icon={PiggyBank} title="Sem cofrinhos" description="Importe um PDF de cofrinho do PicPay" />
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              {accounts.map(acc => (
+                <Card key={acc.id} style={{ cursor: 'pointer' }} onClick={() => navigate(`/investments/${acc.id}`)}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <div style={{
+                      width: 40, height: 40, borderRadius: '0.625rem', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      background: 'rgba(37,99,235,0.1)',
+                    }}>
+                      <PiggyBank size={20} style={{ color: 'var(--color-investment)' }} />
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontSize: '0.875rem', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{acc.name}</p>
+                      <p style={{ fontSize: '0.6875rem', color: 'var(--color-text-muted)' }}>
+                        Rend. {fmt(acc.total_yield)} · Atualizado {fmtDate(acc.last_update)}
+                      </p>
+                    </div>
+                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                      <p style={{ fontSize: '0.9375rem', fontWeight: 700, color: 'var(--color-investment)' }}>{fmtCompact(acc.current_balance)}</p>
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.25rem', flexShrink: 0 }}>
+                      <button onClick={(e) => { e.stopPropagation(); handleDeleteAccount(acc.id, acc.name); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted)', padding: '0.25rem' }}>
+                        <Trash2 size={14} />
+                      </button>
+                      <ChevronRight size={16} style={{ color: 'var(--color-text-muted)' }} />
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
           )}
         </>
       )}
