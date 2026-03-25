@@ -11,6 +11,7 @@ interface DashboardData {
   total_expense: number;
   total_investment: number;
   by_category: { name: string; total: number; color: string }[];
+  by_category_income: { name: string; total: number; color: string }[];
   monthly_evolution: { month: string; income: number; expense: number; investment: number }[];
 }
 
@@ -94,7 +95,7 @@ export default function DashboardPage() {
 
           {data?.by_category && data.by_category.length > 0 && (
             <Card>
-              <h2 style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-text-muted)', marginBottom: '0.75rem' }}>Gastos por Categoria</h2>
+              <h2 style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-text-muted)', marginBottom: '0.75rem' }}>Saídas por Categoria</h2>
               <ResponsiveContainer width="100%" height={180}>
                 <PieChart>
                   <Pie data={data.by_category} dataKey="total" nameKey="name" cx="50%" cy="50%" outerRadius={70} innerRadius={40} strokeWidth={0}>
@@ -107,7 +108,29 @@ export default function DashboardPage() {
                 {data.by_category.map((c, i) => (
                   <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.6875rem' }}>
                     <div style={{ width: 8, height: 8, borderRadius: '50%', background: c.color || '#6b7280' }} />
-                    <span style={{ color: 'var(--color-text-muted)' }}>{c.name}</span>
+                    <span style={{ color: 'var(--color-text-muted)' }}>{c.name} ({fmtCompact(Number(c.total))})</span>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          )}
+
+          {data?.by_category_income && data.by_category_income.length > 0 && (
+            <Card>
+              <h2 style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-text-muted)', marginBottom: '0.75rem' }}>Entradas por Categoria</h2>
+              <ResponsiveContainer width="100%" height={180}>
+                <PieChart>
+                  <Pie data={data.by_category_income} dataKey="total" nameKey="name" cx="50%" cy="50%" outerRadius={70} innerRadius={40} strokeWidth={0}>
+                    {data.by_category_income.map((entry, i) => <Cell key={i} fill={entry.color || '#22c55e'} />)}
+                  </Pie>
+                  <Tooltip formatter={(v) => fmt(Number(v))} contentStyle={{ background: 'var(--color-surface)', border: '1px solid var(--color-surface-3)', borderRadius: '0.5rem', color: 'var(--color-text)', fontSize: '0.75rem' }} />
+                </PieChart>
+              </ResponsiveContainer>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.5rem' }}>
+                {data.by_category_income.map((c, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.6875rem' }}>
+                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: c.color || '#22c55e' }} />
+                    <span style={{ color: 'var(--color-text-muted)' }}>{c.name} ({fmtCompact(Number(c.total))})</span>
                   </div>
                 ))}
               </div>
