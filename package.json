@@ -26,6 +26,11 @@
     "workbox-routing": "^7.4.0",
     "workbox-strategies": "^7.4.0"
   },
+  "overrides": {
+    "vite-plugin-pwa": {
+      "vite": "$vite"
+    }
+  },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
     "@types/node": "^24.12.0",
