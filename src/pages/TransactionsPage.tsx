@@ -3,14 +3,17 @@ import { useNavigate } from 'react-router-dom';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import EmptyState from '../components/ui/EmptyState';
-import { Plus, ArrowLeftRight, TrendingUp, TrendingDown, Landmark, Trash2 } from 'lucide-react';
+import { Plus, ArrowLeftRight, TrendingUp, TrendingDown, Landmark, Trash2, Pencil } from 'lucide-react';
 import api from '../lib/api';
 
 interface Transaction {
   id: number;
   type: 'income' | 'expense' | 'investment';
   description: string;
+  amount: number;
   amount_brl: number;
+  currency: string;
+  exchange_rate: number | null;
   date: string;
   category?: { name: string; icon: string; color: string };
   tags?: { id: number; name: string; color: string }[];
@@ -18,6 +21,10 @@ interface Transaction {
 
 const typeIcons = { income: TrendingUp, expense: TrendingDown, investment: Landmark };
 const typeColors = { income: 'var(--color-income)', expense: 'var(--color-expense)', investment: 'var(--color-investment)' };
+
+function fmtCurrency(value: number, currency: string) {
+  return value.toLocaleString('pt-BR', { style: 'currency', currency });
+}
 
 export default function TransactionsPage() {
   const navigate = useNavigate();
@@ -43,7 +50,6 @@ export default function TransactionsPage() {
     setTransactions(prev => prev.filter(t => t.id !== id));
   }
 
-  const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   const fmtDate = (d: string) => new Date(d + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
 
   return (
@@ -73,8 +79,10 @@ export default function TransactionsPage() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
           {transactions.map(t => {
             const Icon = typeIcons[t.type];
+            const isForeign = t.currency && t.currency !== 'BRL';
+            const sign = t.type === 'expense' ? '-' : '+';
             return (
-              <Card key={t.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <Card key={t.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }} onClick={() => navigate(`/transactions/${t.id}/edit`)}>
                 <div style={{
                   width: 36, height: 36, borderRadius: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center',
                   background: `${t.category?.color || typeColors[t.type]}20`,
@@ -85,11 +93,21 @@ export default function TransactionsPage() {
                   <p style={{ fontSize: '0.875rem', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.description}</p>
                   <p style={{ fontSize: '0.6875rem', color: 'var(--color-text-muted)' }}>{t.category?.name || t.type} · {fmtDate(t.date)}</p>
                 </div>
-                <div style={{ textAlign: 'right', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <span style={{ fontSize: '0.875rem', fontWeight: 600, color: typeColors[t.type] }}>
-                    {t.type === 'expense' ? '-' : '+'}{fmt(t.amount_brl)}
+                <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                  <span style={{ fontSize: '0.875rem', fontWeight: 600, color: typeColors[t.type], display: 'block' }}>
+                    {sign}{isForeign ? fmtCurrency(Number(t.amount), t.currency) : fmtCurrency(Number(t.amount_brl), 'BRL')}
                   </span>
-                  <button onClick={() => handleDelete(t.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted)', padding: '0.25rem' }}>
+                  {isForeign && (
+                    <span style={{ fontSize: '0.625rem', color: 'var(--color-text-muted)', display: 'block' }}>
+                      {sign}{fmtCurrency(Number(t.amount_brl), 'BRL')}
+                    </span>
+                  )}
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', flexShrink: 0 }}>
+                  <button onClick={(e) => { e.stopPropagation(); navigate(`/transactions/${t.id}/edit`); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted)', padding: '0.25rem' }}>
+                    <Pencil size={14} />
+                  </button>
+                  <button onClick={(e) => { e.stopPropagation(); handleDelete(t.id); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted)', padding: '0.25rem' }}>
                     <Trash2 size={14} />
                   </button>
                 </div>

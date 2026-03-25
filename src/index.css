@@ -51,10 +51,23 @@ input, select, textarea {
   transition: border-color 0.2s;
   color-scheme: light;
   font-family: inherit;
+  box-sizing: border-box;
+}
+
+select {
   -webkit-appearance: none;
   -moz-appearance: none;
   appearance: none;
-  box-sizing: border-box;
+}
+
+input[type="date"] {
+  position: relative;
+  cursor: pointer;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.5;
 }
 
 textarea {
