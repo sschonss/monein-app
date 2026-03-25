@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import EmptyState from '../components/ui/EmptyState';
-import { Landmark, TrendingUp, TrendingDown, Upload, ChevronRight, Trash2, Loader, Check, AlertCircle, PiggyBank } from 'lucide-react';
+import { Landmark, TrendingUp, TrendingDown, Upload, ChevronRight, Trash2, Loader, Check, AlertCircle, PiggyBank, Globe } from 'lucide-react';
 import api from '../lib/api';
 
 interface InvestmentAccount {
@@ -17,18 +17,22 @@ interface InvestmentAccount {
   last_update: string | null;
 }
 
+interface GlobalCurrency {
+  currency: string;
+  total_brl: number;
+  count: number;
+}
+
 interface InvestmentSummary {
   total_balance: number;
   total_deposited: number;
   total_withdrawn: number;
   total_yield: number;
   accounts_count: number;
-}
-
-interface DashboardData {
-  total_income: number;
-  total_investment: number;
-  monthly_evolution: { month: string; income: number; expense: number; investment: number }[];
+  global_account: {
+    total_brl: number;
+    by_currency: GlobalCurrency[];
+  };
 }
 
 const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -37,6 +41,9 @@ const fmtCompact = (v: number) => {
   if (Math.abs(v) >= 10_000) return `R$ ${(v / 1_000).toFixed(1)}k`;
   return fmt(v);
 };
+
+const currencyFlags: Record<string, string> = { USD: '🇺🇸', EUR: '🇪🇺', BRL: '🇧🇷' };
+const currencyNames: Record<string, string> = { USD: 'Dólar', EUR: 'Euro', BRL: 'Real' };
 
 export default function InvestmentsPage() {
   const navigate = useNavigate();
@@ -97,6 +104,10 @@ export default function InvestmentsPage() {
     return date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
   };
 
+  const totalInvested = summary
+    ? summary.total_balance + (summary.global_account?.total_brl || 0)
+    : 0;
+
   return (
     <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
       <h1 style={{ fontSize: '1.5rem', fontWeight: 700 }}>Investimentos</h1>
@@ -105,34 +116,53 @@ export default function InvestmentsPage() {
         <p style={{ color: 'var(--color-text-muted)' }}>Carregando...</p>
       ) : (
         <>
-          {/* Summary cards */}
-          {summary && summary.total_balance > 0 && (
-            <>
-              <Card style={{ background: 'var(--color-investment)', color: '#fff' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-                  <Landmark size={18} strokeWidth={1.5} />
-                  <span style={{ fontSize: '0.6875rem', fontWeight: 500, opacity: 0.9, textTransform: 'uppercase' }}>Saldo Cofrinhos</span>
-                </div>
-                <p style={{ fontSize: '2rem', fontWeight: 700, letterSpacing: '-0.02em' }}>{fmt(summary.total_balance)}</p>
-              </Card>
+          {/* Total invested card */}
+          {totalInvested > 0 && (
+            <Card style={{ background: 'var(--color-investment)', color: '#fff' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                <Landmark size={18} strokeWidth={1.5} />
+                <span style={{ fontSize: '0.6875rem', fontWeight: 500, opacity: 0.9, textTransform: 'uppercase' }}>Total Investido</span>
+              </div>
+              <p style={{ fontSize: '2rem', fontWeight: 700, letterSpacing: '-0.02em' }}>{fmt(totalInvested)}</p>
+            </Card>
+          )}
 
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <Card style={{ flex: 1 }}>
+          {/* Summary cards */}
+          {summary && (summary.total_balance > 0 || (summary.global_account?.total_brl || 0) > 0) && (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+              {summary.total_balance > 0 && (
+                <Card>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                    <PiggyBank size={14} style={{ color: 'var(--color-investment)' }} />
+                    <span style={{ fontSize: '0.625rem', color: 'var(--color-text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Cofrinhos</span>
+                  </div>
+                  <p style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--color-investment)' }}>{fmtCompact(summary.total_balance)}</p>
+                </Card>
+              )}
+              {summary.total_yield > 0 && (
+                <Card>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
                     <TrendingUp size={14} style={{ color: 'var(--color-income)' }} />
                     <span style={{ fontSize: '0.625rem', color: 'var(--color-text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Rendimentos</span>
                   </div>
-                  <p style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--color-income)' }}>{fmt(summary.total_yield)}</p>
+                  <p style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--color-income)' }}>{fmtCompact(summary.total_yield)}</p>
                 </Card>
-                <Card style={{ flex: 1 }}>
+              )}
+              {summary.global_account?.by_currency?.map(gc => (
+                <Card key={gc.currency}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                    <Landmark size={14} style={{ color: 'var(--color-investment)' }} />
-                    <span style={{ fontSize: '0.625rem', color: 'var(--color-text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Depositado</span>
+                    <Globe size={14} style={{ color: '#475569' }} />
+                    <span style={{ fontSize: '0.625rem', color: 'var(--color-text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>
+                      {currencyFlags[gc.currency]} {currencyNames[gc.currency] || gc.currency}
+                    </span>
                   </div>
-                  <p style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--color-investment)' }}>{fmt(summary.total_deposited)}</p>
+                  <p style={{ fontSize: '1rem', fontWeight: 700, color: '#475569' }}>{fmt(gc.total_brl)}</p>
+                  <p style={{ fontSize: '0.625rem', color: 'var(--color-text-muted)', marginTop: '0.125rem' }}>
+                    {gc.count} transaç{gc.count === 1 ? 'ão' : 'ões'}
+                  </p>
                 </Card>
-              </div>
-            </>
+              ))}
+            </div>
           )}
 
           {/* Cofrinhos section */}

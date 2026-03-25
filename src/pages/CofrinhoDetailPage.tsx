@@ -75,24 +75,24 @@ export default function CofrinhoDetailPage() {
         <p style={{ fontSize: '2rem', fontWeight: 700, letterSpacing: '-0.02em' }}>{fmt(data.current_balance)}</p>
       </Card>
 
-      <div style={{ display: 'flex', gap: '0.5rem' }}>
-        <Card style={{ flex: 1 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: data.total_withdrawn > 0 ? '1fr 1fr' : '1fr 1fr', gap: '0.5rem' }}>
+        <Card>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', marginBottom: '0.375rem' }}>
             <TrendingUp size={14} style={{ color: 'var(--color-income)' }} />
             <span style={{ fontSize: '0.625rem', color: 'var(--color-text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Rendimentos</span>
           </div>
-          <p style={{ fontSize: '0.9375rem', fontWeight: 700, color: 'var(--color-income)' }}>{fmt(data.total_yield)}</p>
+          <p style={{ fontSize: '0.9375rem', fontWeight: 700, color: 'var(--color-income)' }}>{fmtCompact(data.total_yield)}</p>
           <p style={{ fontSize: '0.625rem', color: 'var(--color-text-muted)', marginTop: '0.125rem' }}>{yieldPct}% do depositado</p>
         </Card>
-        <Card style={{ flex: 1 }}>
+        <Card>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', marginBottom: '0.375rem' }}>
             <Landmark size={14} style={{ color: 'var(--color-investment)' }} />
             <span style={{ fontSize: '0.625rem', color: 'var(--color-text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Depositado</span>
           </div>
-          <p style={{ fontSize: '0.9375rem', fontWeight: 700, color: 'var(--color-investment)' }}>{fmt(data.total_deposited)}</p>
+          <p style={{ fontSize: '0.9375rem', fontWeight: 700, color: 'var(--color-investment)' }}>{fmtCompact(data.total_deposited)}</p>
         </Card>
         {data.total_withdrawn > 0 && (
-          <Card style={{ flex: 1 }}>
+          <Card style={{ gridColumn: '1 / -1' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', marginBottom: '0.375rem' }}>
               <TrendingDown size={14} style={{ color: 'var(--color-expense)' }} />
               <span style={{ fontSize: '0.625rem', color: 'var(--color-text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Resgatado</span>
