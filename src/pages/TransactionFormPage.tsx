@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import CurrencyInput from '../components/ui/CurrencyInput';
+import DateInput from '../components/ui/DateInput';
 import { ArrowLeft } from 'lucide-react';
 import api from '../lib/api';
 
@@ -103,7 +104,7 @@ export default function TransactionFormPage() {
 
         <div>
           <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 500, marginBottom: '0.375rem', color: 'var(--color-text-muted)' }}>Data</label>
-          <input type="date" value={date} onChange={e => setDate(e.target.value)} required />
+          <DateInput value={date} onChange={setDate} required />
         </div>
 
         <div>

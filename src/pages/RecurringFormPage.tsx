@@ -2,6 +2,7 @@ import { useState, useEffect, FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Button from '../components/ui/Button';
 import CurrencyInput from '../components/ui/CurrencyInput';
+import DateInput from '../components/ui/DateInput';
 import { ArrowLeft } from 'lucide-react';
 import api from '../lib/api';
 
@@ -58,7 +59,7 @@ export default function RecurringFormPage() {
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
           <div><label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 500, marginBottom: '0.375rem', color: 'var(--color-text-muted)' }}>Frequência</label><select value={frequency} onChange={e => setFrequency(e.target.value)}><option value="weekly">Semanal</option><option value="biweekly">Quinzenal</option><option value="monthly">Mensal</option><option value="yearly">Anual</option></select></div>
-          <div><label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 500, marginBottom: '0.375rem', color: 'var(--color-text-muted)' }}>Próxima data</label><input type="date" value={nextDueDate} onChange={e => setNextDueDate(e.target.value)} required /></div>
+          <div><label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 500, marginBottom: '0.375rem', color: 'var(--color-text-muted)' }}>Próxima data</label><DateInput value={nextDueDate} onChange={setNextDueDate} required /></div>
         </div>
         <div><label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 500, marginBottom: '0.375rem', color: 'var(--color-text-muted)' }}>Categoria</label><select value={categoryId} onChange={e => setCategoryId(e.target.value)}><option value="">Sem categoria</option>{filteredCategories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></div>
         <Button type="submit" fullWidth disabled={loading}>{loading ? 'Salvando...' : 'Salvar'}</Button>
