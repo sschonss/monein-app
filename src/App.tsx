@@ -15,6 +15,7 @@ const RecurringFormPage = lazy(() => import('./pages/RecurringFormPage'));
 const CategoriesPage = lazy(() => import('./pages/CategoriesPage'));
 const TagsPage = lazy(() => import('./pages/TagsPage'));
 const MenuPage = lazy(() => import('./pages/MenuPage'));
+const ProfilePage = lazy(() => import('./pages/ProfilePage'));
 
 function Loading() {
   return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50dvh', color: 'var(--color-text-muted)' }}>Carregando...</div>;
@@ -38,6 +39,7 @@ export default function App() {
               <Route path="recurring/new" element={<RecurringFormPage />} />
               <Route path="categories" element={<CategoriesPage />} />
               <Route path="tags" element={<TagsPage />} />
+              <Route path="profile" element={<ProfilePage />} />
               <Route path="menu" element={<MenuPage />} />
             </Route>
           </Routes>
