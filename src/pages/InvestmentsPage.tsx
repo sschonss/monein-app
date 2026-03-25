@@ -4,7 +4,7 @@ import { usePrivacy } from '../contexts/PrivacyContext';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import EmptyState from '../components/ui/EmptyState';
-import { Landmark, TrendingUp, TrendingDown, Upload, ChevronRight, Trash2, Loader, Check, AlertCircle, PiggyBank, Globe } from 'lucide-react';
+import { Landmark, TrendingUp, TrendingDown, Upload, ChevronRight, Trash2, Loader, Check, AlertCircle, PiggyBank, Globe, DollarSign, Euro, Coins } from 'lucide-react';
 import api from '../lib/api';
 
 interface InvestmentAccount {
@@ -49,8 +49,13 @@ const fmtCompact = (v: number) => {
   return fmt(v);
 };
 
-const currencyFlags: Record<string, string> = { USD: '🇺🇸', EUR: '🇪🇺', BRL: '🇧🇷' };
+const currencyIcons: Record<string, typeof DollarSign> = { USD: DollarSign, EUR: Euro, BRL: Coins };
 const currencyNames: Record<string, string> = { USD: 'Dólar', EUR: 'Euro', BRL: 'Real' };
+
+function CurrencyIcon({ currency, size = 14 }: { currency: string; size?: number }) {
+  const Icon = currencyIcons[currency] || Globe;
+  return <Icon size={size} />;
+}
 
 export default function InvestmentsPage() {
   const navigate = useNavigate();
@@ -172,7 +177,7 @@ export default function InvestmentsPage() {
                   {Object.entries(summary.global_account.manual_balances).map(([cur, bal]) => (
                     <Card key={cur} style={{ background: '#475569', color: '#fff', cursor: 'pointer' }} onClick={() => navigate(`/investments/global?currency=${cur}`)}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-                        <span style={{ fontSize: '1rem' }}>{currencyFlags[cur]}</span>
+                        <CurrencyIcon currency={cur} size={16} />
                         <span style={{ fontSize: '0.6875rem', fontWeight: 500, opacity: 0.9, textTransform: 'uppercase' }}>Saldo {cur}</span>
                       </div>
                       <p style={{ fontSize: '1.5rem', fontWeight: 700, letterSpacing: '-0.02em' }}>
@@ -199,7 +204,7 @@ export default function InvestmentsPage() {
                     {summary.global_account.by_currency.map(gc => (
                       <Card key={gc.currency} style={{ cursor: 'pointer' }} onClick={() => navigate(`/investments/global?currency=${gc.currency}`)}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                          <span style={{ fontSize: '1rem' }}>{currencyFlags[gc.currency]}</span>
+                          <CurrencyIcon currency={gc.currency} size={16} />
                           <span style={{ fontSize: '0.625rem', color: 'var(--color-text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>
                             {currencyNames[gc.currency] || gc.currency}
                           </span>

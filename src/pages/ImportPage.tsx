@@ -2,7 +2,7 @@ import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
-import { ArrowLeft, Upload, FileText, Check, AlertCircle, Loader, Globe, DollarSign } from 'lucide-react';
+import { ArrowLeft, Upload, FileText, Check, AlertCircle, Loader, Globe, DollarSign, Euro, Settings } from 'lucide-react';
 import api from '../lib/api';
 
 interface ImportResult {
@@ -32,7 +32,7 @@ export default function ImportPage() {
   const [pendingGlobal, setPendingGlobal] = useState<PendingGlobalTx[]>([]);
   const [globalCurrency, setGlobalCurrency] = useState<'USD' | 'EUR'>('USD');
   const [savingGlobal, setSavingGlobal] = useState(false);
-  const [globalResult, setGlobalResult] = useState<{ imported: number; skipped: number } | null>(null);
+  const [globalResult, setGlobalResult] = useState<{ imported: number; skipped: number; needs_balance_update?: boolean } | null>(null);
 
   function handleFile(f: File | undefined) {
     if (f && f.type === 'application/pdf') {
@@ -227,7 +227,7 @@ export default function ImportPage() {
                       transition: 'all 0.2s',
                     }}
                   >
-                    🇺🇸 Dólar (USD)
+                    <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}><DollarSign size={16} /> Dólar (USD)</span>
                   </button>
                   <button
                     onClick={() => setAllCurrency('EUR')}
@@ -244,7 +244,7 @@ export default function ImportPage() {
                       transition: 'all 0.2s',
                     }}
                   >
-                    🇪🇺 Euro (EUR)
+                    <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}><Euro size={16} /> Euro (EUR)</span>
                   </button>
                 </div>
               </div>
@@ -327,6 +327,18 @@ export default function ImportPage() {
                 {globalResult.imported} investimento{globalResult.imported !== 1 ? 's' : ''} salvo{globalResult.imported !== 1 ? 's' : ''}
                 {globalResult.skipped > 0 && ` · ${globalResult.skipped} ignorado${globalResult.skipped !== 1 ? 's' : ''} (duplicados)`}
               </p>
+              {globalResult.needs_balance_update && (
+                <button
+                  onClick={() => navigate('/investments/global')}
+                  style={{
+                    marginTop: '0.5rem', padding: '0.375rem 0.75rem', borderRadius: '0.5rem',
+                    background: '#475569', color: '#fff', border: 'none', cursor: 'pointer',
+                    fontSize: '0.75rem', fontWeight: 600,
+                  }}
+                >
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}><Settings size={14} /> Atualizar saldo da Conta Global</span>
+                </button>
+              )}
             </div>
           </div>
         </Card>

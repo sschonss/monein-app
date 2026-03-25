@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { usePrivacy } from '../contexts/PrivacyContext';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
-import { ArrowLeft, Globe, TrendingUp, TrendingDown, Plus, X, Settings } from 'lucide-react';
+import { ArrowLeft, Globe, TrendingUp, TrendingDown, Plus, X, Settings, DollarSign, Euro, Coins } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import api from '../lib/api';
 
@@ -36,8 +36,13 @@ interface ManualBalance {
 
 const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 const fmtForeign = (v: number, cur: string) => v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ' + cur;
-const currencyFlags: Record<string, string> = { USD: '🇺🇸', EUR: '🇪🇺', BRL: '🇧🇷' };
+const currencyIcons: Record<string, typeof DollarSign> = { USD: DollarSign, EUR: Euro, BRL: Coins };
 const currencyNames: Record<string, string> = { USD: 'Dólar', EUR: 'Euro', BRL: 'Real' };
+
+function CurrencyIcon({ currency, size = 14 }: { currency: string; size?: number }) {
+  const Icon = currencyIcons[currency] || Globe;
+  return <Icon size={size} />;
+}
 
 export default function GlobalAccountPage() {
   const navigate = useNavigate();
@@ -63,6 +68,7 @@ export default function GlobalAccountPage() {
   const [adjustUSD, setAdjustUSD] = useState('');
   const [adjustEUR, setAdjustEUR] = useState('');
   const [adjustSaving, setAdjustSaving] = useState(false);
+  const [rates, setRates] = useState<Record<string, number>>({});
 
   function loadData() {
     setLoading(true);
@@ -82,6 +88,18 @@ export default function GlobalAccountPage() {
   }
 
   useEffect(() => { loadData(); }, [filter]);
+
+  useEffect(() => {
+    Promise.all([
+      api.get('/currency/rate', { params: { from: 'USD' } }).catch(() => null),
+      api.get('/currency/rate', { params: { from: 'EUR' } }).catch(() => null),
+    ]).then(([usd, eur]) => {
+      const r: Record<string, number> = {};
+      if (usd?.data?.rate) r.USD = usd.data.rate;
+      if (eur?.data?.rate) r.EUR = eur.data.rate;
+      setRates(r);
+    });
+  }, []);
 
   async function handleSpend() {
     if (!spendAmount || parseFloat(spendAmount) <= 0) return;
@@ -165,13 +183,13 @@ export default function GlobalAccountPage() {
       {/* Adjust account form */}
       {showAdjustForm && (
         <Card style={{ border: '1px solid #475569', background: 'rgba(71,85,105,0.05)' }}>
-          <h3 style={{ fontSize: '0.8125rem', fontWeight: 700, marginBottom: '0.75rem' }}>⚙️ Ajustar Conta</h3>
+          <h3 style={{ fontSize: '0.8125rem', fontWeight: 700, marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.375rem' }}><Settings size={14} /> Ajustar Conta</h3>
           <p style={{ fontSize: '0.625rem', color: 'var(--color-text-muted)', marginBottom: '0.75rem' }}>
             Informe o saldo real da sua conta em cada moeda
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
             <div>
-              <label style={{ fontSize: '0.6875rem', fontWeight: 600, color: 'var(--color-text-muted)', display: 'block', marginBottom: '0.25rem' }}>🇺🇸 Saldo em Dólar (USD)</label>
+              <label style={{ fontSize: '0.6875rem', fontWeight: 600, color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '0.25rem', marginBottom: '0.25rem' }}><DollarSign size={12} /> Saldo em Dólar (USD)</label>
               <input
                 type="number"
                 step="0.01"
@@ -186,7 +204,7 @@ export default function GlobalAccountPage() {
               />
             </div>
             <div>
-              <label style={{ fontSize: '0.6875rem', fontWeight: 600, color: 'var(--color-text-muted)', display: 'block', marginBottom: '0.25rem' }}>🇪🇺 Saldo em Euro (EUR)</label>
+              <label style={{ fontSize: '0.6875rem', fontWeight: 600, color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '0.25rem', marginBottom: '0.25rem' }}><Euro size={12} /> Saldo em Euro (EUR)</label>
               <input
                 type="number"
                 step="0.01"
@@ -217,19 +235,21 @@ export default function GlobalAccountPage() {
               {manualUSD && (
                 <Card style={{ background: '#475569', color: '#fff' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-                    <span style={{ fontSize: '1rem' }}>🇺🇸</span>
+                    <DollarSign size={16} />
                     <span style={{ fontSize: '0.6875rem', fontWeight: 500, opacity: 0.9, textTransform: 'uppercase' }}>Saldo USD</span>
                   </div>
                   <p style={{ fontSize: '1.5rem', fontWeight: 700, letterSpacing: '-0.02em' }}>{mask(fmtForeign(manualUSD.balance, 'USD'))}</p>
+                  {rates.USD && <p style={{ fontSize: '0.625rem', opacity: 0.7, marginTop: '0.25rem' }}>≈ {mask(fmt(manualUSD.balance * rates.USD))}</p>}
                 </Card>
               )}
               {manualEUR && (
                 <Card style={{ background: '#475569', color: '#fff' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-                    <span style={{ fontSize: '1rem' }}>🇪🇺</span>
+                    <Euro size={16} />
                     <span style={{ fontSize: '0.6875rem', fontWeight: 500, opacity: 0.9, textTransform: 'uppercase' }}>Saldo EUR</span>
                   </div>
                   <p style={{ fontSize: '1.5rem', fontWeight: 700, letterSpacing: '-0.02em' }}>{mask(fmtForeign(manualEUR.balance, 'EUR'))}</p>
+                  {rates.EUR && <p style={{ fontSize: '0.625rem', opacity: 0.7, marginTop: '0.25rem' }}>≈ {mask(fmt(manualEUR.balance * rates.EUR))}</p>}
                 </Card>
               )}
             </div>
@@ -240,7 +260,7 @@ export default function GlobalAccountPage() {
                 <span style={{ fontSize: '0.6875rem', fontWeight: 500, opacity: 0.9, textTransform: 'uppercase' }}>Saldo Estimado</span>
               </div>
               <p style={{ fontSize: '2rem', fontWeight: 700, letterSpacing: '-0.02em' }}>{mask(fmt(netAmount))}</p>
-              <p style={{ fontSize: '0.625rem', opacity: 0.7, marginTop: '0.25rem' }}>Ajuste o saldo real em ⚙️ Ajustar Conta</p>
+              <p style={{ fontSize: '0.625rem', opacity: 0.7, marginTop: '0.25rem' }}>Ajuste o saldo real em Ajustar Conta</p>
             </Card>
           )}
 
@@ -272,7 +292,7 @@ export default function GlobalAccountPage() {
               {totals.map(t => (
                 <Card key={t.currency}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.375rem' }}>
-                    <span style={{ fontSize: '1rem' }}>{currencyFlags[t.currency]}</span>
+                    <CurrencyIcon currency={t.currency} size={16} />
                     <span style={{ fontSize: '0.625rem', color: 'var(--color-text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>
                       {currencyNames[t.currency] || t.currency}
                     </span>
@@ -298,8 +318,9 @@ export default function GlobalAccountPage() {
                   padding: '0.375rem 0.75rem', borderRadius: '1rem', fontSize: '0.7rem', fontWeight: 500, border: 'none', cursor: 'pointer',
                   background: filter === c ? '#475569' : 'var(--color-surface-2)',
                   color: filter === c ? '#fff' : 'var(--color-text-muted)',
+                  display: 'flex', alignItems: 'center', gap: '0.25rem',
                 }}>
-                  {currencyFlags[c]} {c}
+                  <CurrencyIcon currency={c} size={12} /> {c}
                 </button>
               ))}
             </div>
@@ -384,8 +405,9 @@ export default function GlobalAccountPage() {
                         border: 'none', cursor: 'pointer',
                         background: spendCurrency === c ? '#475569' : 'var(--color-surface-2)',
                         color: spendCurrency === c ? '#fff' : 'var(--color-text-muted)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem',
                       }}>
-                        {currencyFlags[c]} {c}
+                        <CurrencyIcon currency={c} size={14} /> {c}
                       </button>
                     ))}
                   </div>
@@ -441,7 +463,7 @@ export default function GlobalAccountPage() {
                       ) : tx.direction === 'spend' ? (
                         <TrendingDown size={16} style={{ color: 'var(--color-expense)' }} />
                       ) : (
-                        <span style={{ fontSize: '0.875rem' }}>{currencyFlags[tx.currency] || '💱'}</span>
+                        <CurrencyIcon currency={tx.currency} size={16} />
                       )}
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
