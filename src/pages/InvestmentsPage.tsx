@@ -112,7 +112,7 @@ export default function InvestmentsPage() {
   };
 
   const totalInvested = summary ? summary.total_balance : 0;
-  const globalTotal = summary?.global_account?.total_brl || 0;
+  const globalTotal = summary?.global_account?.net_brl || 0;
 
   return (
     <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>

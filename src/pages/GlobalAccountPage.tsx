@@ -168,7 +168,7 @@ export default function GlobalAccountPage() {
                   <YAxis tick={{ fill: 'var(--color-text-muted)', fontSize: 9 }} axisLine={false} tickLine={false} tickFormatter={v => `R$ ${(v / 1000).toFixed(0)}k`} />
                   <Tooltip
                     contentStyle={{ background: 'var(--color-surface)', border: '1px solid var(--color-surface-3)', borderRadius: '0.5rem', color: 'var(--color-text)', fontSize: '0.75rem' }}
-                    formatter={(v: number) => fmt(v)}
+                    formatter={(v) => fmt(Number(v))}
                   />
                   <Bar dataKey="deposits" name="Enviado" fill="#475569" radius={[4, 4, 0, 0]} />
                   <Bar dataKey="returns" name="Resgatado" fill="#22c55e" radius={[4, 4, 0, 0]} />
