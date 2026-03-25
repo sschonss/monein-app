@@ -10,6 +10,7 @@ import RegisterPage from './pages/RegisterPage';
 const DashboardPage = lazy(() => import('./pages/DashboardPage'));
 const TransactionsPage = lazy(() => import('./pages/TransactionsPage'));
 const TransactionFormPage = lazy(() => import('./pages/TransactionFormPage'));
+const AnalyticsPage = lazy(() => import('./pages/AnalyticsPage'));
 const RecurringPage = lazy(() => import('./pages/RecurringPage'));
 const RecurringFormPage = lazy(() => import('./pages/RecurringFormPage'));
 const CategoriesPage = lazy(() => import('./pages/CategoriesPage'));
@@ -36,6 +37,7 @@ export default function App() {
               <Route path="transactions" element={<TransactionsPage />} />
               <Route path="transactions/new" element={<TransactionFormPage />} />
               <Route path="transactions/:id/edit" element={<TransactionFormPage />} />
+              <Route path="analytics" element={<AnalyticsPage />} />
               <Route path="recurring" element={<RecurringPage />} />
               <Route path="recurring/new" element={<RecurringFormPage />} />
               <Route path="categories" element={<CategoriesPage />} />

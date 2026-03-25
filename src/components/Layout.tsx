@@ -1,10 +1,10 @@
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, ArrowLeftRight, Repeat, Tags, Menu } from 'lucide-react';
+import { LayoutDashboard, ArrowLeftRight, BarChart3, Tags, Menu } from 'lucide-react';
 
 const navItems = [
   { path: '/', icon: LayoutDashboard, label: 'Dashboard' },
   { path: '/transactions', icon: ArrowLeftRight, label: 'Transações' },
-  { path: '/recurring', icon: Repeat, label: 'Recorrentes' },
+  { path: '/analytics', icon: BarChart3, label: 'Análise' },
   { path: '/categories', icon: Tags, label: 'Categorias' },
   { path: '/menu', icon: Menu, label: 'Menu' },
 ];
