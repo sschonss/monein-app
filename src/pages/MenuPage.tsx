@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import Card from '../components/ui/Card';
-import { LogOut, User, Tag, Tags, RefreshCw, Info, ChevronRight, Check, Loader, FileUp, Repeat, Bell, BellOff } from 'lucide-react';
+import { LogOut, User, Tag, Tags, RefreshCw, Info, ChevronRight, Check, Loader, FileUp, Repeat, Bell, BellOff, Send } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useRegisterSW } from 'virtual:pwa-register/react';
 import { usePushNotifications } from '../hooks/usePushNotifications';
+import api from '../lib/api';
 
 declare const __APP_VERSION__: string;
 
@@ -14,6 +15,15 @@ export default function MenuPage() {
   const { updateServiceWorker } = useRegisterSW();
   const [updateStatus, setUpdateStatus] = useState<'idle' | 'checking' | 'updated' | 'latest'>('idle');
   const push = usePushNotifications();
+  const [testSending, setTestSending] = useState(false);
+
+  async function handleTestNotification() {
+    setTestSending(true);
+    try {
+      await api.post('/push/test');
+    } catch {}
+    setTestSending(false);
+  }
 
   async function handleLogout() {
     await logout();
@@ -142,6 +152,20 @@ export default function MenuPage() {
               ) : (
                 <ChevronRight size={16} style={{ color: 'var(--color-text-muted)' }} />
               )}
+            </div>
+          </Card>
+        )}
+
+        {push.subscribed && (
+          <Card
+            style={{ cursor: testSending ? 'wait' : 'pointer' }}
+            onClick={testSending ? undefined : handleTestNotification}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <Send size={18} style={{ color: 'var(--color-primary)', flexShrink: 0 }} />
+              <span style={{ fontSize: '0.875rem', flex: 1 }}>
+                {testSending ? 'Enviando...' : 'Enviar notificação de teste'}
+              </span>
             </div>
           </Card>
         )}
