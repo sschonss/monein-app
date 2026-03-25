@@ -4,7 +4,6 @@ import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import EmptyState from '../components/ui/EmptyState';
 import { Landmark, TrendingUp, TrendingDown, Upload, ChevronRight, Trash2, Loader, Check, AlertCircle, PiggyBank } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import api from '../lib/api';
 
 interface InvestmentAccount {
@@ -39,21 +38,12 @@ const fmtCompact = (v: number) => {
   return fmt(v);
 };
 
-const periods = [
-  { key: 'week', label: 'Semana' },
-  { key: 'month', label: 'Mês' },
-  { key: 'year', label: 'Ano' },
-  { key: 'all', label: 'Tudo' },
-];
-
 export default function InvestmentsPage() {
   const navigate = useNavigate();
   const fileRef = useRef<HTMLInputElement>(null);
-  const [dash, setDash] = useState<DashboardData | null>(null);
   const [summary, setSummary] = useState<InvestmentSummary | null>(null);
   const [accounts, setAccounts] = useState<InvestmentAccount[]>([]);
   const [loading, setLoading] = useState(true);
-  const [period, setPeriod] = useState('month');
   const [uploading, setUploading] = useState(false);
   const [uploadResult, setUploadResult] = useState<{ message: string; imported: number; skipped: number; account_name: string } | null>(null);
   const [uploadError, setUploadError] = useState('');
@@ -61,17 +51,15 @@ export default function InvestmentsPage() {
   function loadAll() {
     setLoading(true);
     Promise.all([
-      api.get('/dashboard', { params: { period } }),
       api.get('/investments/summary'),
       api.get('/investments/accounts'),
-    ]).then(([dashRes, summaryRes, accountsRes]) => {
-      setDash(dashRes.data);
+    ]).then(([summaryRes, accountsRes]) => {
       setSummary(summaryRes.data);
       setAccounts(accountsRes.data);
     }).catch(() => {}).finally(() => setLoading(false));
   }
 
-  useEffect(() => { loadAll(); }, [period]);
+  useEffect(() => { loadAll(); }, []);
 
   async function handleUpload(file: File) {
     if (file.type !== 'application/pdf') {
@@ -103,11 +91,6 @@ export default function InvestmentsPage() {
     loadAll();
   }
 
-  const monthlyInvestment = (dash?.monthly_evolution || []).map(m => ({ month: m.month, investment: m.investment }));
-  const totalIncome = dash?.total_income ?? 0;
-  const totalInvested = dash?.total_investment ?? 0;
-  const investPct = totalIncome > 0 ? ((totalInvested / totalIncome) * 100).toFixed(1) : '0';
-
   const fmtDate = (d: string | null) => {
     if (!d) return '-';
     const date = d.includes('T') ? new Date(d) : new Date(d + 'T00:00:00');
@@ -117,19 +100,6 @@ export default function InvestmentsPage() {
   return (
     <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
       <h1 style={{ fontSize: '1.5rem', fontWeight: 700 }}>Investimentos</h1>
-
-      <div style={{ display: 'flex', gap: '0.5rem' }}>
-        {periods.map(p => (
-          <button key={p.key} onClick={() => setPeriod(p.key)} style={{
-            flex: 1, padding: '0.5rem', borderRadius: '0.5rem', fontSize: '0.75rem', fontWeight: 600, border: 'none', cursor: 'pointer',
-            background: period === p.key ? 'var(--color-investment)' : 'var(--color-surface-2)',
-            color: period === p.key ? '#fff' : 'var(--color-text-muted)',
-            transition: 'all 0.2s',
-          }}>
-            {p.label}
-          </button>
-        ))}
-      </div>
 
       {loading ? (
         <p style={{ color: 'var(--color-text-muted)' }}>Carregando...</p>
@@ -162,31 +132,7 @@ export default function InvestmentsPage() {
                   <p style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--color-investment)' }}>{fmt(summary.total_deposited)}</p>
                 </Card>
               </div>
-
-              {totalIncome > 0 && (
-                <Card>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>% da renda investido</span>
-                    <span style={{ fontSize: '1.125rem', fontWeight: 700, color: 'var(--color-investment)' }}>{investPct}%</span>
-                  </div>
-                </Card>
-              )}
             </>
-          )}
-
-          {/* Monthly evolution */}
-          {monthlyInvestment.some(m => m.investment > 0) && (
-            <Card>
-              <h2 style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-text-muted)', marginBottom: '0.75rem' }}>Evolução Mensal</h2>
-              <ResponsiveContainer width="100%" height={180}>
-                <BarChart data={monthlyInvestment}>
-                  <XAxis dataKey="month" tick={{ fill: 'var(--color-text-muted)', fontSize: 10 }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fill: 'var(--color-text-muted)', fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
-                  <Tooltip contentStyle={{ background: 'var(--color-surface)', border: '1px solid var(--color-surface-3)', borderRadius: '0.5rem', color: 'var(--color-text)', fontSize: '0.75rem' }} formatter={(v) => fmt(Number(v))} />
-                  <Bar dataKey="investment" name="Investido" fill="var(--color-investment)" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </Card>
           )}
 
           {/* Cofrinhos section */}

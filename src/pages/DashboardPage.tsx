@@ -23,15 +23,19 @@ export default function DashboardPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [data, setData] = useState<DashboardData | null>(null);
+  const [investSummary, setInvestSummary] = useState<{ total_balance: number } | null>(null);
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState('month');
 
   useEffect(() => {
     setLoading(true);
-    api.get('/dashboard', { params: { period } })
-      .then(r => setData(r.data))
-      .catch(() => {})
-      .finally(() => setLoading(false));
+    Promise.all([
+      api.get('/dashboard', { params: { period } }),
+      api.get('/investments/summary'),
+    ]).then(([dashRes, investRes]) => {
+      setData(dashRes.data);
+      setInvestSummary(investRes.data);
+    }).catch(() => {}).finally(() => setLoading(false));
   }, [period]);
 
   const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -90,15 +94,14 @@ export default function DashboardPage() {
             </Card>
           </div>
 
-          {(data?.total_investment ?? 0) > 0 && (
-            <Card>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Landmark size={16} style={{ color: 'var(--color-investment)' }} />
-                <span style={{ fontSize: '0.6875rem', color: 'var(--color-text-muted)', fontWeight: 600, textTransform: 'uppercase', flex: 1 }}>Investido</span>
-                <p style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--color-investment)' }}>{fmt(data?.total_investment ?? 0)}</p>
-              </div>
-            </Card>
-          )}
+          <Card style={{ cursor: 'pointer' }} onClick={() => navigate('/investments')}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <Landmark size={18} style={{ color: 'var(--color-investment)', flexShrink: 0 }} />
+              <span style={{ fontSize: '0.875rem', flex: 1, fontWeight: 500 }}>Investimentos</span>
+              <span style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--color-investment)' }}>{fmt(investSummary?.total_balance ?? 0)}</span>
+              <ChevronRight size={16} style={{ color: 'var(--color-text-muted)' }} />
+            </div>
+          </Card>
 
           <Card style={{ cursor: 'pointer' }} onClick={() => navigate('/analytics')}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
