@@ -213,39 +213,26 @@ export default function GlobalAccountPage() {
         <>
           {/* Balance cards */}
           {hasManualBalance ? (
-            <>
-              {/* Real balances from manual adjustment */}
-              <div style={{ display: 'grid', gridTemplateColumns: manualUSD && manualEUR ? '1fr 1fr' : '1fr', gap: '0.5rem' }}>
-                {manualUSD && (
-                  <Card style={{ background: '#475569', color: '#fff' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-                      <span style={{ fontSize: '1rem' }}>🇺🇸</span>
-                      <span style={{ fontSize: '0.6875rem', fontWeight: 500, opacity: 0.9, textTransform: 'uppercase' }}>Saldo USD</span>
-                    </div>
-                    <p style={{ fontSize: '1.5rem', fontWeight: 700, letterSpacing: '-0.02em' }}>{mask(fmtForeign(manualUSD.balance, 'USD'))}</p>
-                  </Card>
-                )}
-                {manualEUR && (
-                  <Card style={{ background: '#475569', color: '#fff' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-                      <span style={{ fontSize: '1rem' }}>🇪🇺</span>
-                      <span style={{ fontSize: '0.6875rem', fontWeight: 500, opacity: 0.9, textTransform: 'uppercase' }}>Saldo EUR</span>
-                    </div>
-                    <p style={{ fontSize: '1.5rem', fontWeight: 700, letterSpacing: '-0.02em' }}>{mask(fmtForeign(manualEUR.balance, 'EUR'))}</p>
-                  </Card>
-                )}
-              </div>
-              {/* Estimated as secondary info */}
-              <Card style={{ padding: '0.75rem 1rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <Globe size={14} style={{ color: 'var(--color-text-muted)' }} />
-                    <span style={{ fontSize: '0.6875rem', color: 'var(--color-text-muted)', fontWeight: 500 }}>Total Investido (BRL)</span>
+            <div style={{ display: 'grid', gridTemplateColumns: manualUSD && manualEUR ? '1fr 1fr' : '1fr', gap: '0.5rem' }}>
+              {manualUSD && (
+                <Card style={{ background: '#475569', color: '#fff' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                    <span style={{ fontSize: '1rem' }}>🇺🇸</span>
+                    <span style={{ fontSize: '0.6875rem', fontWeight: 500, opacity: 0.9, textTransform: 'uppercase' }}>Saldo USD</span>
                   </div>
-                  <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--color-text-muted)' }}>{mask(fmt(netAmount))}</span>
-                </div>
-              </Card>
-            </>
+                  <p style={{ fontSize: '1.5rem', fontWeight: 700, letterSpacing: '-0.02em' }}>{mask(fmtForeign(manualUSD.balance, 'USD'))}</p>
+                </Card>
+              )}
+              {manualEUR && (
+                <Card style={{ background: '#475569', color: '#fff' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                    <span style={{ fontSize: '1rem' }}>🇪🇺</span>
+                    <span style={{ fontSize: '0.6875rem', fontWeight: 500, opacity: 0.9, textTransform: 'uppercase' }}>Saldo EUR</span>
+                  </div>
+                  <p style={{ fontSize: '1.5rem', fontWeight: 700, letterSpacing: '-0.02em' }}>{mask(fmtForeign(manualEUR.balance, 'EUR'))}</p>
+                </Card>
+              )}
+            </div>
           ) : (
             <Card style={{ background: '#475569', color: '#fff' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
@@ -257,28 +244,30 @@ export default function GlobalAccountPage() {
             </Card>
           )}
 
-          {/* Deposited vs Returned */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
-            <Card>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', marginBottom: '0.375rem' }}>
-                <TrendingUp size={14} style={{ color: '#475569' }} />
-                <span style={{ fontSize: '0.625rem', color: 'var(--color-text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Enviado</span>
-              </div>
-              <p style={{ fontSize: '0.9375rem', fontWeight: 700, color: '#475569' }}>{mask(fmt(totalDeposited))}</p>
-            </Card>
-            {totalReturns > 0 && (
+          {/* Deposited vs Returned — only when no manual balance */}
+          {!hasManualBalance && (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
               <Card>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', marginBottom: '0.375rem' }}>
-                  <TrendingDown size={14} style={{ color: 'var(--color-income)' }} />
-                  <span style={{ fontSize: '0.625rem', color: 'var(--color-text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Resgatado</span>
+                  <TrendingUp size={14} style={{ color: '#475569' }} />
+                  <span style={{ fontSize: '0.625rem', color: 'var(--color-text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Enviado</span>
                 </div>
-                <p style={{ fontSize: '0.9375rem', fontWeight: 700, color: 'var(--color-income)' }}>{mask(fmt(totalReturns))}</p>
+                <p style={{ fontSize: '0.9375rem', fontWeight: 700, color: '#475569' }}>{mask(fmt(totalDeposited))}</p>
               </Card>
-            )}
-          </div>
+              {totalReturns > 0 && (
+                <Card>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', marginBottom: '0.375rem' }}>
+                    <TrendingDown size={14} style={{ color: 'var(--color-income)' }} />
+                    <span style={{ fontSize: '0.625rem', color: 'var(--color-text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Resgatado</span>
+                  </div>
+                  <p style={{ fontSize: '0.9375rem', fontWeight: 700, color: 'var(--color-income)' }}>{mask(fmt(totalReturns))}</p>
+                </Card>
+              )}
+            </div>
+          )}
 
-          {/* Currency breakdown */}
-          {totals.length > 1 && (
+          {/* Currency breakdown — only when no manual balance and multiple currencies */}
+          {!hasManualBalance && totals.length > 1 && (
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
               {totals.map(t => (
                 <Card key={t.currency}>
