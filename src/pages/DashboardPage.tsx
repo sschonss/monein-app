@@ -25,7 +25,7 @@ export default function DashboardPage() {
   const { mask, toggle, hidden } = usePrivacy();
   const navigate = useNavigate();
   const [data, setData] = useState<DashboardData | null>(null);
-  const [investSummary, setInvestSummary] = useState<{ total_balance: number; global_account?: { net_brl: number; manual_balances?: Record<string, number> } } | null>(null);
+  const [investSummary, setInvestSummary] = useState<{ total_balance: number; global_account?: { total_brl: number } } | null>(null);
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState('month');
 
@@ -105,7 +105,7 @@ export default function DashboardPage() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
               <Landmark size={18} style={{ color: 'var(--color-investment)', flexShrink: 0 }} />
               <span style={{ fontSize: '0.875rem', flex: 1, fontWeight: 500 }}>Investimentos</span>
-              <span style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--color-investment)' }}>{fmt((investSummary?.total_balance ?? 0) + (investSummary?.global_account?.net_brl ?? 0))}</span>
+              <span style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--color-investment)' }}>{fmt((investSummary?.total_balance ?? 0) + (investSummary?.global_account?.total_brl ?? 0))}</span>
               <ChevronRight size={16} style={{ color: 'var(--color-text-muted)' }} />
             </div>
           </Card>
