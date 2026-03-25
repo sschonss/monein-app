@@ -30,7 +30,7 @@ export default function DashboardPage() {
   return (
     <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
       <div>
-        <p style={{ color: 'var(--color-text-muted)', fontSize: '0.875rem' }}>Olá, {user?.name?.split(' ')[0]} 👋</p>
+        <p style={{ color: 'var(--color-text-muted)', fontSize: '0.875rem' }}>Olá, {user?.name?.split(' ')[0]}</p>
         <h1 style={{ fontSize: '1.5rem', fontWeight: 700, marginTop: '0.25rem' }}>Dashboard</h1>
       </div>
 
